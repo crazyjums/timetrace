@@ -2,14 +2,65 @@
   "name": "timetrace-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "时迹 Timetrace 桌面外壳：启动本机 Go 服务并加载界面",
+  "description": "时迹 Timetrace 桌面客户端：纯本地统计 LLM 编码工具的会话时间",
   "main": "main.js",
   "scripts": {
-    "build:server": "cd .. && go build -o electron/bin/timetrace-server ./cmd/timetrace-server",
+    "build:server": "node scripts/build-server.js",
     "start": "npm run build:server && electron .",
-    "dist": "npm run build:server && electron-builder"
+    "dist": "npm run build:server && electron-builder --publish never"
   },
   "devDependencies": {
-    "electron": "^33.0.0"
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "author": "crazyjums",
+  "build": {
+    "appId": "com.crazyjums.timetrace",
+    "productName": "Timetrace",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin/",
+        "to": ".",
+        "filter": [
+          "timetrace-server*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Timetrace-Setup-${version}-${arch}.${ext}"
+    },
+    "portable": {
+      "artifactName": "Timetrace-Portable-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "identity": null,
+      "category": "public.app-category.developer-tools",
+      "artifactName": "Timetrace-${version}-mac-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development",
+      "artifactName": "Timetrace-${version}-linux-${arch}.${ext}"
+    }
   }
 }

@@ -28,7 +28,22 @@ go run ./cmd/timetrace-server --port 8765
 
 # Electron 桌面窗口(需要 Node 与 Go)
 cd electron && npm install && npm start
+
+# 打安装包(当前系统对应的平台)
+cd electron && npm run dist     # 产物在 electron/dist/
 ```
+
+## 下载与安装
+
+每次合并到 master 会自动发布 Release,产物是桌面客户端(内含 Go 本机服务,双击即用,不弹命令行窗口):
+
+| 平台 | 文件 |
+| --- | --- |
+| Windows | `Timetrace-Setup-*.exe`(安装版)、`Timetrace-Portable-*.exe`(单文件便携版,双击运行) |
+| macOS | `Timetrace-*-mac-arm64.dmg`(Apple 芯片)、`Timetrace-*-mac-x64.dmg`(Intel) |
+| Linux | `Timetrace-*-linux-x64.AppImage` |
+
+目前没有代码签名:Windows 会有 SmartScreen 提示(「更多信息 → 仍要运行」),macOS 首次打开需在「系统设置 → 隐私与安全性」里放行。没有自动更新,需要手动下载新版本。命令行版本请用 `go run ./cmd/timetrace` 或自行 `go build`。
 
 界面静态文件内嵌在 Go 二进制里,无前端构建步骤。修改类请求必须带 `X-Timetrace: 1` 头,且只接受本机 Host(防 CSRF 与 DNS rebinding);来自日志的文本一律转义后再渲染。数据源可在设置页添加(先「测试扫描」再确认)。
 
