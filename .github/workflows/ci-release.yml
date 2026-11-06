@@ -38,10 +38,29 @@ jobs:
           node --check internal/server/web/app.js
           node --check electron/main.js
 
+  version:
+    name: 计算版本号
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.next.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: 在最新的 v0.1.x 标签上加 1
+        id: next
+        run: |
+          set -euo pipefail
+          # 只看已发布的标签，不受 PR 检查占用运行序号的影响
+          last=$(git ls-remote --tags --refs origin 'v0.1.*' | sed 's#.*refs/tags/v0\.1\.##' | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
+          next=$(( ${last:-0} + 1 ))
+          echo "上一个: v0.1.${last:-无}，本次: v0.1.$next"
+          echo "version=0.1.$next" >> "$GITHUB_OUTPUT"
+
   build:
     name: 打包 ${{ matrix.name }}
     if: github.event_name == 'push'
-    needs: check
+    needs: version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: true
@@ -74,7 +93,7 @@ jobs:
       - name: 打包桌面客户端
         working-directory: electron
         shell: bash
-        run: npx electron-builder ${{ matrix.args }} --publish never -c.extraMetadata.version=0.1.${{ github.run_number }}
+        run: npx electron-builder ${{ matrix.args }} --publish never -c.extraMetadata.version=${{ needs.version.outputs.version }}
       - uses: actions/upload-artifact@v4
         with:
           name: timetrace-${{ matrix.goos }}-${{ matrix.goarch }}
@@ -87,7 +106,7 @@ jobs:
   release:
     name: 发布 Release
     if: github.event_name == 'push'
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write # 创建 tag 和 release
@@ -103,7 +122,7 @@ jobs:
       - name: 创建 Release
         run: |
           set -euo pipefail
-          tag="v0.1.${{ github.run_number }}"
+          tag="v${{ needs.version.outputs.version }}"
           gh release create "$tag" assets/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
