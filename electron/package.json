@@ -1,0 +1,15 @@
+{
+  "name": "timetrace-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "时迹 Timetrace 桌面外壳：启动本机 Go 服务并加载界面",
+  "main": "main.js",
+  "scripts": {
+    "build:server": "cd .. && go build -o electron/bin/timetrace-server ./cmd/timetrace-server",
+    "start": "npm run build:server && electron .",
+    "dist": "npm run build:server && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

@@ -12,9 +12,17 @@ import (
 )
 
 type Settings struct {
-	IdleMinutes int    `json:"idle_minutes"`
-	WindowHours int    `json:"window_hours"`
-	LLM         LLMCfg `json:"llm"`
+	IdleMinutes int      `json:"idle_minutes"`
+	WindowHours int      `json:"window_hours"`
+	LLM         LLMCfg   `json:"llm"`
+	Sources     []Source `json:"sources"`
+}
+
+// Source = 适配器 + 目录。同一适配器可有多个目录。
+type Source struct {
+	Adapter string `json:"adapter"`
+	Dir     string `json:"dir"`
+	Enabled bool   `json:"enabled"`
 }
 
 // LLMCfg 默认关闭；Level: counts | names | segments。
@@ -39,7 +47,9 @@ func DefaultPath() string {
 }
 
 func Default() File {
-	return File{Settings: Settings{IdleMinutes: 10, WindowHours: 4, LLM: LLMCfg{Level: "counts"}}}
+	home, _ := os.UserHomeDir()
+	return File{Settings: Settings{IdleMinutes: 10, WindowHours: 4, LLM: LLMCfg{Level: "counts"},
+		Sources: []Source{{Adapter: "claude-code", Dir: filepath.Join(home, ".claude", "projects"), Enabled: true}}}}
 }
 
 // Load：文件不存在返回默认值。

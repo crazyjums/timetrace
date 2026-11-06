@@ -2,7 +2,7 @@
 
 纯本地工具:读取 LLM 编码工具的会话日志,按「需求」统计时间花在哪(聊方案 / 调研 / 写代码 / 改代码 / 测试 / 其他,外加等我、空闲),并给出洞察。数据全程在本机,没有账号、云同步和遥测。
 
-当前状态:**后端核心 + CLI**。桌面界面尚未开始,技术栈待定。产品说明见 [docs/BRIEF.md](docs/BRIEF.md),原型见 `docs/prototype-v0/`、`docs/prototype-canvas/`。
+当前状态:**后端核心 + CLI + 本机 Web 界面 + Electron 外壳**。产品说明见 [docs/BRIEF.md](docs/BRIEF.md),原型见 `docs/prototype-v0/`、`docs/prototype-canvas/`。
 
 ## 已实现
 
@@ -11,13 +11,26 @@
 - 计时、阶段判定、需求聚合,只在 `internal/core` 实现一次。
 - 人工修正(重命名、改阶段、合并、拆分)与设置,保存在本机 JSON。
 - 今日统计、本地规则洞察、可选大模型解读(默认关闭)。
+- 界面:需求列表、需求明细(阶段分布 + 时间轴)、对话抽屉、今日、洞察、设置(数据源 / 能力矩阵 / 计时 / 阶段规则 / 大模型)、空态与解析失败提示;阶段用颜色 + 纹理 + 字母 + 图标四重编码,亮 / 暗两套主题。
+- Electron 外壳:启动本机 Go 服务并加载界面(已在 xvfb 下端到端验证可启动)。
 
 ## 未实现
 
-- 桌面界面(5 个页面、阶段四重编码、亮暗主题)。
 - Codex CLI、pi、omp、Cursor 适配器:缺真实日志样例,不猜格式。
 - YAML 声明式适配器、过程视图。
 - 跨 cwd 的手动合并。
+
+## 界面
+
+```bash
+# 浏览器:启动本机服务(只监听 127.0.0.1),按输出的地址访问
+go run ./cmd/timetrace-server --port 8765
+
+# Electron 桌面窗口(需要 Node 与 Go)
+cd electron && npm install && npm start
+```
+
+界面静态文件内嵌在 Go 二进制里,无前端构建步骤。修改类请求必须带 `X-Timetrace: 1` 头,且只接受本机 Host(防 CSRF 与 DNS rebinding);来自日志的文本一律转义后再渲染。数据源可在设置页添加(先「测试扫描」再确认)。
 
 ## 使用
 
@@ -78,6 +91,9 @@ go run ./cmd/timetrace split <会话ID>               # 从该会话起另起需
 | `internal/insights` | 本地规则洞察 |
 | `internal/llm` | 可选大模型解读 |
 | `internal/store` | 人工修正与设置的本机存储 |
+| `internal/server` | 本机 JSON API 与内嵌界面(`web/`) |
+| `cmd/timetrace-server` | 本机服务入口 |
+| `electron/` | Electron 外壳 |
 | `docs/` | 产品简报与界面原型 |
 
 ## 约束
