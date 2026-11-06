@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>需求明细</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;color:#1b2430}
+*{box-sizing:border-box}
+.app{width:1280px;height:800px;display:flex;background:#f6f7f9;font-size:13px;line-height:1.45}
+.side{width:196px;background:#fff;border-right:1px solid #dfe3e8;padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex:none}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:15px;padding:0 8px 16px}
+.brand i{width:22px;height:22px;border-radius:6px;background:#1f5fae;display:block;position:relative}
+.brand i:after{content:"";position:absolute;left:5px;right:5px;top:10px;height:2px;background:#fff;box-shadow:0 -4px 0 0 #fff,0 4px 0 0 #fff}
+.nv{display:block;padding:8px 10px;border-radius:7px;color:#566170;text-decoration:none;font-size:13px}
+.nv.on{background:#e8f0fa;color:#174a8a;font-weight:600}
+.sp{flex:1}
+.priv{font-size:11.5px;color:#566170;padding:10px;border-top:1px solid #dfe3e8;line-height:1.5}
+.main{flex:1;min-width:0;padding:20px 28px;display:flex;gap:24px;overflow:hidden}
+.col{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px}
+.crumb{display:flex;align-items:center;gap:8px;color:#566170;font-size:12.5px}
+.crumb a{color:#174a8a;text-decoration:none}
+.ttl{display:flex;align-items:center;gap:10px}
+.ttl h1{margin:0;font-size:20px;font-weight:650}
+.grow{flex:1}
+.btn{border:1px solid #cfd5dc;background:#fff;border-radius:7px;padding:5px 12px;font-size:12.5px;color:#1b2430;font-family:inherit}
+.sub{color:#566170;font-size:12.5px;margin-top:-8px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid #dfe3e8;border-radius:10px;padding:10px 12px}
+.kpi .l{color:#566170;font-size:12px}
+.kpi .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .n{color:#566170;font-size:11.5px}
+.card{background:#fff;border:1px solid #dfe3e8;border-radius:10px;padding:14px 16px}
+.card h2{margin:0 0 10px;font-size:13.5px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h2 span{font-weight:400;color:#566170;font-size:12px}
+.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;gap:1px}
+.bar>div{display:flex;align-items:center;justify-content:center;min-width:0}
+.lt{background:#fff;color:#1b2430;border-radius:3px;font-size:10px;font-weight:700;line-height:14px;padding:0 4px}
+.ptab{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:10px}
+.pc{font-size:12px;color:#566170}
+.pc b{display:block;color:#1b2430;font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums}
+.pc i{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:5px}
+.lane{display:grid;grid-template-columns:132px minmax(0,1fr);gap:10px;align-items:center;padding:5px 0}
+.lane .lb{font-size:12px;line-height:1.35}
+.lane .lb b{font-weight:650;display:block}
+.lane .lb span{color:#566170}
+.trk{display:flex;height:28px;gap:1px;align-items:stretch}
+.trk>div{min-width:0;display:flex;align-items:center;justify-content:center;border-radius:2px}
+.trk .sel{outline:2px solid #1b2430;outline-offset:1px;position:relative;z-index:1}
+.idle{flex:none!important;width:16px;background:#fff;color:#566170;border:1px dashed #aab3bf;border-radius:4px!important}
+.idle svg{width:11px;height:11px}
+.wt{background-color:#B59B1F;background-image:conic-gradient(rgba(255,255,255,.34) 25%,transparent 0 50%,rgba(255,255,255,.34) 0 75%,transparent 0);background-size:6px 6px;height:14px;align-self:center}
+.note{color:#566170;font-size:11.5px;margin-top:8px}
+.drawer{width:332px;flex:none;background:#fff;border:1px solid #dfe3e8;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+.dh{padding:14px 16px;border-bottom:1px solid #edf0f3}
+.dh .t{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px}
+.dh .m{color:#566170;font-size:12px;margin-top:3px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:5px;color:#fff;font-size:11.5px;font-weight:650}
+.db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.um{background:#f1f4f7;border-radius:8px;padding:10px 12px;font-size:12.5px}
+.um .l{color:#566170;font-size:11.5px;margin-bottom:2px}
+.sph{font-size:12px;color:#566170;display:flex}
+.sph span{flex:1}
+.sp-row{display:grid;grid-template-columns:20px minmax(0,1fr) 58px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #edf0f3;font-size:12.5px}
+.sp-row svg{width:16px;height:16px;color:#3b4552}
+.sp-row .d{text-align:right;font-variant-numeric:tabular-nums;color:#3b4552}
+.sp-row .x{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-row small{display:block;color:#566170;font-size:11.5px}
+.fixit{border:1px solid #cfd5dc;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;font-size:12.5px}
+.ph-plan{background-color:#2B73B8}
+.ph-research{background-color:#1E9475;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 2px,transparent 2px 6px)}
+.ph-code{background-color:#C98414;background-image:radial-gradient(rgba(255,255,255,.34) 1.2px,transparent 1.7px);background-size:5px 5px}
+.ph-fix{background-color:#CF4B37;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px)}
+.ph-test{background-color:#A9569A;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+.ph-other{background-color:#7C8796;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+</style>
+</helmet>
+<div class="app">
+  <nav class="side" aria-label="主导航">
+    <div class="brand"><i aria-hidden="true"></i>时迹</div>
+    <a class="nv on" href="Main.dc.html">需求</a>
+    <a class="nv" href="Today.dc.html">今日</a>
+    <a class="nv" href="Insights.dc.html">洞察</a>
+    <a class="nv" href="Sources.dc.html">数据源与设置</a>
+    <div class="sp"></div>
+    <div class="priv">数据只在本机处理，不上传。大模型建议默认关闭。</div>
+  </nav>
+  <main class="main">
+    <div class="col">
+      <div class="crumb"><a href="Main.dc.html">需求</a><span>/</span><span>~/work/auth-service</span></div>
+      <div class="ttl"><h1>登录接口改造</h1><div class="grow"></div><button class="btn" type="button">合并</button><button class="btn" type="button">拆分</button><button class="btn" type="button">改名</button></div>
+      <div class="sub">3 个会话（cc ×2、codex ×1）· 周一 09:12 至周三 12:37 · 空闲 2h 50m 不计入</div>
+      <div class="kpis">
+        <div class="kpi"><div class="l">活跃时间</div><div class="v">6h 42m</div><div class="n">AI + 等我</div></div>
+        <div class="kpi"><div class="l">AI 工作</div><div class="v">5h 34m</div><div class="n">含工具与子 agent</div></div>
+        <div class="kpi"><div class="l">等我</div><div class="v">1h 08m</div><div class="n">17% 的活跃时间</div></div>
+        <div class="kpi"><div class="l">轮数</div><div class="v">41</div><div class="n">平均 9m 49s / 轮</div></div>
+        <div class="kpi"><div class="l">超过 10 分钟的轮</div><div class="v">3</div><div class="n">点开看是哪几轮</div></div>
+      </div>
+      <div class="card">
+        <h2>阶段分布 <span>只含 AI 工作时间 · 阶段由规则判定，可手动改</span></h2>
+        <div class="bar">
+          <div class="ph-plan" style="flex:12 1 0"><span class="lt">P</span></div>
+          <div class="ph-research" style="flex:9 1 0"><span class="lt">R</span></div>
+          <div class="ph-code" style="flex:34 1 0"><span class="lt">C</span></div>
+          <div class="ph-fix" style="flex:28 1 0"><span class="lt">F</span></div>
+          <div class="ph-test" style="flex:10 1 0"><span class="lt">T</span></div>
+          <div class="ph-other" style="flex:7 1 0"><span class="lt">O</span></div>
+        </div>
+        <div class="ptab">
+          <div class="pc"><i class="ph-plan"></i>聊方案<b>40m · 12%</b></div>
+          <div class="pc"><i class="ph-research"></i>调研<b>30m · 9%</b></div>
+          <div class="pc"><i class="ph-code"></i>写代码<b>1h 54m · 34%</b></div>
+          <div class="pc"><i class="ph-fix"></i>改代码<b>1h 34m · 28%</b></div>
+          <div class="pc"><i class="ph-test"></i>测试<b>33m · 10%</b></div>
+          <div class="pc"><i class="ph-other"></i>其他<b>23m · 7%</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>时间轴 <span>按会话，一格是一轮；空闲已折叠为虚线框</span></h2>
+        <sc-for list="{{lanes}}" as="ln" hint-placeholder-count="3">
+          <div class="lane">
+            <div class="lb"><b>{{ln.tool}}</b><span>{{ln.when}}</span></div>
+            <div class="trk">
+              <sc-for list="{{ln.items}}" as="it" hint-placeholder-count="8">
+                <div class="{{it.cls}}" style="flex: {{it.m}} 1 {{it.basis}}" title="{{it.title}}"><sc-if value="{{it.idle}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></sc-if></div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div class="note">黄色细条是「等我」；黑框是当前在右侧查看的一轮。同一时段的并发会话各算各的，允许重叠。</div>
+      </div>
+    </div>
+    <aside class="drawer" aria-label="对话抽屉">
+      <div class="dh">
+        <div class="t"><span>第 17 轮</span><span class="chip ph-fix">F 改代码</span></div>
+        <div class="m">周一 11:48 · cc · 4m 12s · 精确</div>
+      </div>
+      <div class="db">
+        <div class="um"><div class="l">用户消息</div>把 token 刷新的并发问题修掉，刷新失败时别把用户踢出登录。</div>
+        <div class="sph"><span>这一轮的过程</span><span style="text-align:right">共 7 段</span></div>
+        <div>
+          <sc-for list="{{spans}}" as="sp" hint-placeholder-count="7">
+            <div class="sp-row">
+              <div>
+                <sc-if value="{{sp.isLlm}}" hint-placeholder-val="{{true}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg></sc-if>
+                <sc-if value="{{sp.isTool}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0 5 5L10 21a2.1 2.1 0 0 1-3-3l9.7-9.7a4 4 0 0 0-2-2z"/></svg></sc-if>
+                <sc-if value="{{sp.isPerm}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></sc-if>
+              </div>
+              <div class="x">{{sp.t}}<small>{{sp.s}}</small></div>
+              <div class="d">{{sp.d}}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div class="fixit"><span>阶段改为：</span><b>F 改代码</b><span style="margin-left:auto;color:#566170">手动改会保留</span></div>
+        <div style="color:#566170;font-size:11.5px">权限等待算作 AI 时间，因为日志里分不出来。</div>
+      </div>
+    </aside>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const names = { plan: '聊方案', research: '调研', code: '写代码', fix: '改代码', test: '测试', other: '其他', wait: '等我' };
+    const it = (a, selIdx) => a.map(([k, m], i) => {
+      if (k === 'idle') return { cls: 'idle', m: 0, basis: '16px', title: '空闲已折叠', idle: true };
+      const base = k === 'wait' ? 'wt' : 'ph-' + k;
+      return { cls: base + (selIdx === i ? ' sel' : ''), m: m, basis: '0', title: names[k] + ' ' + m + ' 分钟', idle: false };
+    });
+    const lanes = [
+      { tool: 'cc', when: '周一 09:12 · 2h 40m', items: it([['plan', 18], ['wait', 3], ['research', 14], ['code', 30], ['wait', 4], ['code', 22], ['fix', 22], ['wait', 5], ['fix', 8], ['test', 14], ['idle', 0], ['other', 4]], 7) },
+      { tool: 'codex', when: '周二 14:03 · 1h 55m', items: it([['plan', 10], ['wait', 2], ['code', 28], ['wait', 5], ['fix', 40], ['test', 12], ['idle', 0], ['fix', 14], ['wait', 6]], -1) },
+      { tool: 'cc', when: '周三 10:30 · 2h 07m', items: it([['research', 12], ['code', 30], ['wait', 4], ['fix', 32], ['fix', 10], ['wait', 6], ['test', 18], ['other', 8], ['idle', 0]], -1) }
+    ];
+    const spans = [
+      { isLlm: true, isTool: false, isPerm: false, t: 'LLM 思考', s: '读需求，定位刷新逻辑', d: '38s' },
+      { isLlm: false, isTool: true, isPerm: false, t: 'Read', s: 'auth/refresh.go', d: '2s' },
+      { isLlm: true, isTool: false, isPerm: false, t: 'LLM 思考', s: '设计加锁方案', d: '52s' },
+      { isLlm: false, isTool: true, isPerm: false, t: 'Edit', s: 'auth/refresh.go', d: '1s' },
+      { isLlm: false, isTool: false, isPerm: true, t: '权限等待', s: '允许运行 go test', d: '26s' },
+      { isLlm: false, isTool: true, isPerm: false, t: 'Bash', s: 'go test ./auth/...', d: '1m 41s' },
+      { isLlm: true, isTool: false, isPerm: false, t: 'LLM 总结', s: '', d: '32s' }
+    ];
+    return { lanes, spans };
+  }
+}
+</script>
+</body>
+</html>

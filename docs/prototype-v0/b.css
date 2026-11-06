@@ -1,0 +1,85 @@
+/* 方向 B：留白 — 轻量、圆角、无衬线；数字仍用等宽对齐。文档阅读器气质 */
+:root {
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --font: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --fs: 14px;
+  --bg:      light-dark(#faf9f7, #17181b);
+  --panel:   light-dark(#ffffff, #1e2024);
+  --side:    light-dark(#f3f1ee, #131417);
+  --chrome:  light-dark(#faf9f7, #17181b);
+  --ink:     light-dark(#26272b, #e7e8ea);
+  --ink2:    light-dark(#74767d, #9a9ca3);
+  --line:    light-dark(#e3e0db, #34363c);
+  --line-soft: light-dark(#eeebe7, #2a2c31);
+  --hover:   light-dark(#f1eeea, #26282d);
+  --sel:     light-dark(#ece9f7, #2b2a3d);
+  --accent:  light-dark(#5b4bd6, #9d92ff);
+  --accent-soft: light-dark(#e6e2fb, #2f2c52);
+  --on-accent: light-dark(#fff, #14131f);
+  --live:    light-dark(#198754, #5fd39a);
+  --shadow:  0 10px 30px rgba(30,30,50,.16);
+  --r: 8px;
+  --toph: 48px;
+  --listw: 340px; --listw-n: 280px;
+  --dpad: 26px 32px 48px;
+  --h1: 22px; --mv: 36px; --mv-w: 500;
+  --sec-gap: 26px; --sec-fs: 13px; --mgap: 40px;
+  --row-areas: "nm tm" auto "bar bar" auto "meta meta" auto / minmax(0, 1fr) auto;
+  --row-areas-m: "ck nm tm" auto "ck bar bar" auto "ck meta meta" auto / 18px minmax(0, 1fr) auto;
+  --row-gap: 5px 10px; --row-pad: 11px 12px; --row-r: 10px; --rows-pad: 6px; --nm-w: 500; --meta-d: block;
+  --bar-h: 6px; --bar-r: 99px; --bar-big: 12px; --mini-h: 12px;
+  --cell-h: 28px; --ruler-h: 22px; --cell-gap: 0; --cell-r: 4px;
+  --seg-cols: 120px minmax(0, 1fr) 48px 64px 150px; --seg-cols-n: 110px minmax(0, 1fr) 44px 60px;
+  --seg-pad: 11px 14px; --seg-h-d: none; --wf-rh: 32px; --wfn: 240px;
+}
+#top { border-bottom: 0; }
+#status { border-top: 0; }
+#list { border-right: 0; }
+.row { border-bottom: 0; }
+.row.sel::before { display: none; }
+.row.sel { background: var(--sel); }
+#app[data-area="list"] .row.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+.row .tm { color: var(--ink2); }
+.row .meta { margin-top: 1px; }
+.lh { border-bottom: 0; padding: 12px 10px 6px; }
+.metrics { margin-top: 6px; }
+.metric .lb { font-size: 12.5px; }
+.metric .v { letter-spacing: -.02em; }
+.metric .s { font-size: 12px; }
+.sec-t { margin-bottom: 10px; }
+.bar.big { border-radius: 99px; }
+.legend { gap: 8px 22px; }
+.lg { font-size: 12.5px; }
+.tl-scroll { border: 0; background: var(--hover); border-radius: 12px; padding: 0 2px; }
+.tl-mini { border-radius: 99px; }
+.tl-mini .vp { border-radius: 99px; }
+.cell { box-shadow: inset 0 0 0 1px var(--hover); }
+.cell:hover { filter: brightness(1.08); }
+.tl-bar { font-size: 12.5px; }
+.tl-bar .sp { display: none; }
+.segs { border: 0; background: transparent; display: grid; gap: 4px; }
+.seg { border: 0; border-radius: 10px; background: var(--panel); box-shadow: 0 0 0 1px var(--line-soft); }
+.seg:last-child { border-radius: 10px; }
+.seg.sel { background: var(--sel); box-shadow: 0 0 0 1px var(--accent); }
+#app[data-area="detail"] .seg.sel { outline: 2px solid var(--accent); outline-offset: 0; }
+.seg .pn { font-weight: 500; }
+.seg .pn .sw { border-radius: 50%; width: 12px; height: 12px; }
+.fs, .sess, .errl, .tn { border-radius: 12px; }
+.fs { border: 0; box-shadow: 0 0 0 1px var(--line); }
+#today { border-radius: 16px; padding: 16px; }
+#drawer { border-left: 0; }
+.dr-h { background: var(--panel); border-bottom: 0; padding: 14px 16px; }
+.dr-b { padding: 4px 16px 32px; }
+.tn { border: 0; box-shadow: 0 0 0 1px var(--line-soft); }
+.tn.sel { box-shadow: 0 0 0 2px var(--accent); }
+button { padding: 5px 12px; }
+.banner { border-radius: 10px; }
+
+.pstats, .wf, .spanp, .pstrip { border: 0; box-shadow: 0 0 0 1px var(--line-soft); border-radius: 12px; }
+.pstats .v { font-weight: 500; font-size: 17px; }
+.wf-b { border-radius: 99px; top: 9px; bottom: 9px; }
+.b-agent { top: 7px; bottom: 7px; }
+.pcell { border-radius: 99px; }
+.pq { border-radius: 10px; }
+.srcs, .capt { border: 0; box-shadow: 0 0 0 1px var(--line-soft); border-radius: 10px; }
+.addp { border-radius: 12px; }

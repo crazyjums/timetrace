@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>需求列表</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;color:#1b2430}
+*{box-sizing:border-box}
+.app{width:1280px;height:800px;display:flex;background:#f6f7f9;font-size:13px;line-height:1.45}
+.side{width:196px;background:#fff;border-right:1px solid #dfe3e8;padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex:none}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:15px;padding:0 8px 16px}
+.brand i{width:22px;height:22px;border-radius:6px;background:#1f5fae;display:block;position:relative}
+.brand i:after{content:"";position:absolute;left:5px;right:5px;top:10px;height:2px;background:#fff;box-shadow:0 -4px 0 -0px #fff,0 4px 0 0 #fff}
+.nv{display:block;padding:8px 10px;border-radius:7px;color:#566170;text-decoration:none;font-size:13px}
+.nv.on{background:#e8f0fa;color:#174a8a;font-weight:600}
+.sp{flex:1}
+.priv{font-size:11.5px;color:#566170;padding:10px;border-top:1px solid #dfe3e8;line-height:1.5}
+.main{flex:1;min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.top{display:flex;align-items:center;gap:12px}
+.top h1{margin:0;font-size:20px;font-weight:650}
+.top .sub{color:#566170;font-size:12.5px}
+.grow{flex:1}
+.seg-ctl{display:flex;border:1px solid #cfd5dc;border-radius:8px;overflow:hidden;background:#fff}
+.seg-ctl span{padding:6px 12px;font-size:12.5px;color:#566170}
+.seg-ctl span.on{background:#1b2430;color:#fff}
+.search{width:200px;border:1px solid #cfd5dc;border-radius:8px;background:#fff;padding:6px 10px;color:#566170;font-size:12.5px}
+.warn{display:flex;gap:10px;align-items:center;background:#fff6e5;border:1px solid #efd7a2;border-radius:8px;padding:8px 12px;color:#5b4310;font-size:12.5px}
+.warn b{font-weight:650}
+.warn a{margin-left:auto;color:#174a8a;text-decoration:underline}
+.lg{display:flex;gap:14px;flex-wrap:wrap;align-items:center;color:#566170;font-size:12px}
+.lg span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+.lg svg{width:14px;height:14px}
+.tbl{background:#fff;border:1px solid #dfe3e8;border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.hd,.row{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,3fr) 92px 78px 140px 96px;gap:16px;align-items:center;padding:0 18px}
+.hd{height:36px;color:#566170;font-size:12px;border-bottom:1px solid #dfe3e8;background:#fafbfc}
+.row{color:inherit;text-decoration:none;height:68px;border-bottom:1px solid #edf0f3}
+.row:last-child{border-bottom:0}
+.row.sel{background:#f1f6fc}
+.nm{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{color:#566170;font-size:12px;margin-top:2px}
+.bar{display:flex;height:24px;border-radius:5px;overflow:hidden;gap:1px;background:#fff}
+.bar>div{display:flex;align-items:center;justify-content:center;min-width:0}
+.lt{background:#fff;color:#1b2430;border-radius:3px;font-size:10px;font-weight:700;line-height:14px;padding:0 4px}
+.num{font-variant-numeric:tabular-nums;font-weight:600;font-size:14px;text-align:right}
+.num.mut{font-weight:500;color:#566170;font-size:13px}
+.tools{display:flex;gap:4px;flex-wrap:wrap}
+.tg{border:1px solid #cfd5dc;border-radius:5px;padding:1px 6px;font-size:11.5px;color:#3b4552;background:#fff}
+.tg.coarse{border-style:dashed}
+.badge{display:inline-block;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:600}
+.b-coarse{background:#eceef1;color:#3b4552;border:1px dashed #8b95a3}
+.b-run{background:#e5f4ee;color:#0f5a43}
+.when{color:#566170;font-size:12px;text-align:right}
+.ph-plan{background-color:#2B73B8}
+.ph-research{background-color:#1E9475;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 2px,transparent 2px 6px)}
+.ph-code{background-color:#C98414;background-image:radial-gradient(rgba(255,255,255,.34) 1.2px,transparent 1.7px);background-size:5px 5px}
+.ph-fix{background-color:#CF4B37;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px)}
+.ph-test{background-color:#A9569A;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+.ph-other{background-color:#7C8796;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+.ph-na{background:repeating-linear-gradient(135deg,#eceef1 0 6px,#f7f8fa 6px 12px);border:1px dashed #8b95a3;color:#566170;font-size:11.5px}
+.foot{color:#566170;font-size:12px;display:flex;gap:16px}
+</style>
+</helmet>
+<div class="app">
+  <nav class="side" aria-label="主导航">
+    <div class="brand"><i aria-hidden="true"></i>时迹</div>
+    <a class="nv on" href="Main.dc.html">需求</a>
+    <a class="nv" href="Today.dc.html">今日</a>
+    <a class="nv" href="Insights.dc.html">洞察</a>
+    <a class="nv" href="Sources.dc.html">数据源与设置</a>
+    <div class="sp"></div>
+    <div class="priv">数据只在本机处理，不上传。大模型建议默认关闭。</div>
+  </nav>
+  <main class="main">
+    <div class="top">
+      <h1>需求</h1>
+      <span class="sub">共 5 个 · 本周</span>
+      <div class="grow"></div>
+      <div class="search">搜索需求或项目路径</div>
+      <div class="seg-ctl" role="group" aria-label="时间范围"><span>今天</span><span class="on">本周</span><span>本月</span><span>全部</span></div>
+    </div>
+    <div class="warn" role="status"><b>1 个文件解析失败</b><span>codex · rollout-2026-11-04T10-12.jsonl · 第 218 行不是有效 JSON，其余文件不受影响。</span><a href="Sources.dc.html">查看原因</a></div>
+    <div class="lg" aria-label="图例">
+      <span><i class="sw ph-plan"></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-6l-4.5 4v-4H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z"/><path d="M8 9h8M8 12h5"/></svg>P 聊方案</span>
+      <span><i class="sw ph-research"></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 21 21"/><path d="M8 10.5a2.5 2.5 0 0 1 2.5-2.5"/></svg>R 调研</span>
+      <span><i class="sw ph-code"></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 7-5 5 5 5"/><path d="m16 7 5 5-5 5"/><path d="m14 4-4 16"/></svg>C 写代码</span>
+      <span><i class="sw ph-fix"></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 6.5v5M6.5 9h5"/><path d="M13.5 15h5"/></svg>F 改代码</span>
+      <span><i class="sw ph-test"></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.8 18a2 2 0 0 0 1.7 3h11a2 2 0 0 0 1.7-3L14 9.2V3"/><path d="M7.4 15h9.2"/></svg>T 测试</span>
+      <span><i class="sw ph-other"></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="8" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>O 其他</span>
+      <span style="margin-left:auto">「活跃」= AI 工作 + 等我；空闲不计入</span>
+    </div>
+    <div class="tbl">
+      <div class="hd"><div>需求</div><div>阶段构成（AI 工作时间）</div><div style="text-align:right">活跃</div><div style="text-align:right">其中等我</div><div>工具</div><div style="text-align:right">最近</div></div>
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+        <a class="row {{r.cls}}" href="Detail.dc.html">
+          <div style="min-width:0">
+            <div class="nm">{{r.name}}</div>
+            <div class="meta">{{r.meta}}</div>
+          </div>
+          <div>
+            <sc-if value="{{r.coarse}}" hint-placeholder-val="{{false}}">
+              <div class="bar"><div class="ph-na" style="flex:1">耗时不可得 · 仅显示次数和跨度</div></div>
+            </sc-if>
+            <sc-if value="{{r.exact}}" hint-placeholder-val="{{true}}">
+              <div class="bar">
+                <sc-for list="{{r.segs}}" as="s" hint-placeholder-count="5">
+                  <div class="{{s.cls}}" style="flex: {{s.w}} 1 0" title="{{s.title}}"><sc-if value="{{s.show}}" hint-placeholder-val="{{true}}"><span class="lt">{{s.l}}</span></sc-if></div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div class="num">{{r.active}}</div>
+          <div class="num mut">{{r.wait}}</div>
+          <div class="tools">
+            <sc-for list="{{r.tools}}" as="t" hint-placeholder-count="2"><span class="tg {{t.cls}}">{{t.n}}</span></sc-for>
+            <sc-if value="{{r.coarse}}" hint-placeholder-val="{{false}}"><span class="badge b-coarse">粗略</span></sc-if>
+            <sc-if value="{{r.running}}" hint-placeholder-val="{{false}}"><span class="badge b-run">运行中</span></sc-if>
+          </div>
+          <div class="when">{{r.when}}</div>
+        </a>
+      </sc-for>
+    </div>
+    <div class="foot">
+      <span>粗略档需求（如 Cursor 转录）不计入汇总数字。</span>
+      <span>点一行进入明细；合并、拆分、改名都在明细里。</span>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = { plan: 'P', research: 'R', code: 'C', fix: 'F', test: 'T', other: 'O' };
+    const N = { plan: '聊方案', research: '调研', code: '写代码', fix: '改代码', test: '测试', other: '其他' };
+    const mk = (a) => a.map(([k, w]) => ({ cls: 'ph-' + k, w: w, l: L[k], show: w >= 8, title: N[k] + ' ' + w + '%' }));
+    const tl = (a) => a.map((n) => ({ n: n, cls: '' }));
+    const rows = [
+      { cls: 'sel', name: '登录接口改造', meta: '~/work/auth-service · 3 个会话 · 41 轮', exact: true, coarse: false, running: false, segs: mk([['plan', 12], ['research', 9], ['code', 34], ['fix', 28], ['test', 10], ['other', 7]]), active: '6h 42m', wait: '1h 08m', tools: tl(['cc', 'codex']), when: '今天 14:20' },
+      { cls: '', name: '订单导出超时排查', meta: '~/work/order-svc · 2 个会话 · 23 轮', exact: true, coarse: false, running: false, segs: mk([['plan', 8], ['research', 31], ['code', 12], ['fix', 36], ['test', 9], ['other', 4]]), active: '3h 15m', wait: '24m', tools: tl(['cc']), when: '昨天 18:02' },
+      { cls: '', name: '发布巡检刹车', meta: '~/work/portal-guard · 5 个会话 · 76 轮', exact: true, coarse: false, running: false, segs: mk([['plan', 15], ['research', 14], ['code', 31], ['fix', 22], ['test', 13], ['other', 5]]), active: '8h 05m', wait: '1h 31m', tools: tl(['cc', 'pi']), when: '周三 21:40' },
+      { cls: '', name: '日志解析器适配', meta: '~/work/timetrace · 1 个会话 · 12 轮 · 当前一轮计到现在', exact: true, coarse: false, running: true, segs: mk([['plan', 22], ['research', 18], ['code', 40], ['fix', 10], ['test', 5], ['other', 5]]), active: '1h 20m', wait: '9m', tools: tl(['omp']), when: '进行中' },
+      { cls: '', name: '内部网关重构', meta: '~/work/gateway · 3 个会话 · 跨度 2 天 · 共 14 条用户消息', exact: false, coarse: true, running: false, segs: [], active: '–', wait: '–', tools: [{ n: 'cursor', cls: 'coarse' }], when: '周二 17:12' }
+    ];
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>数据源与设置</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;color:#1b2430}
+*{box-sizing:border-box}
+.app{width:1280px;height:800px;display:flex;background:#f6f7f9;font-size:13px;line-height:1.45}
+.side{width:196px;background:#fff;border-right:1px solid #dfe3e8;padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex:none}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:15px;padding:0 8px 16px}
+.brand i{width:22px;height:22px;border-radius:6px;background:#1f5fae;display:block;position:relative}
+.brand i:after{content:"";position:absolute;left:5px;right:5px;top:10px;height:2px;background:#fff;box-shadow:0 -4px 0 0 #fff,0 4px 0 0 #fff}
+.nv{display:block;padding:8px 10px;border-radius:7px;color:#566170;text-decoration:none;font-size:13px}
+.nv.on{background:#e8f0fa;color:#174a8a;font-weight:600}
+.sp{flex:1}
+.priv{font-size:11.5px;color:#566170;padding:10px;border-top:1px solid #dfe3e8;line-height:1.5}
+.main{flex:1;min-width:0;padding:22px 28px;display:flex;gap:16px;overflow:hidden}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.l{flex:1}
+.r{width:340px;flex:none}
+h1{margin:0 0 2px;font-size:20px;font-weight:650}
+.sub{color:#566170;font-size:12.5px;margin-bottom:2px}
+.card{background:#fff;border:1px solid #dfe3e8;border-radius:10px;padding:14px 16px}
+.card h2{margin:0 0 10px;font-size:13.5px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h2 span{font-weight:400;color:#566170;font-size:12px}
+.srow{display:grid;grid-template-columns:118px minmax(0,1fr) 150px 64px 50px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid #edf0f3;font-size:12.5px}
+.srow.h{border-top:0;color:#566170;font-size:12px;padding-top:0}
+.srow b{font-weight:650}
+.path{color:#566170;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:ui-monospace,Menlo,Consolas,monospace}
+.st small{display:block;color:#566170;font-size:11.5px}
+.bd{display:inline-block;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:600}
+.bd-ex{background:#e5f4ee;color:#0f5a43}
+.bd-co{background:#eceef1;color:#3b4552;border:1px dashed #8b95a3}
+.bd-no{background:#fff;color:#566170;border:1px solid #cfd5dc}
+.bd-er{background:#fdeceb;color:#8a2417}
+.tg{width:34px;height:20px;border-radius:10px;background:#1f5fae;position:relative;display:inline-block;justify-self:end}
+.tg:after{content:"";position:absolute;right:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.tg.off{background:#c3cad3}
+.tg.off:after{right:auto;left:2px}
+.mx{display:grid;grid-template-columns:118px repeat(7,minmax(0,1fr));gap:0;font-size:12px}
+.mx div{padding:6px 4px;border-top:1px solid #edf0f3;text-align:center}
+.mx .h{border-top:0;color:#566170;font-size:11.5px;padding-top:0}
+.mx .t{text-align:left;font-weight:650;padding-left:0}
+.y{color:#0f5a43;font-weight:650}
+.n{color:#6b7684}
+.note{color:#566170;font-size:11.5px;margin-top:8px}
+.frow{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-top:1px solid #edf0f3;font-size:12.5px}
+.frow:first-of-type{border-top:0}
+.frow span:last-child{color:#566170}
+.inp{border:1px solid #cfd5dc;border-radius:6px;padding:3px 10px;background:#fff;font-variant-numeric:tabular-nums;font-size:12.5px}
+.btn{border:1px solid #cfd5dc;background:#fff;border-radius:7px;padding:4px 10px;font-size:12px;color:#1b2430;font-family:inherit}
+.err{background:#fdf3f2;border:1px solid #f0cbc7}
+.err .m{font-size:12px;color:#5a2019;margin-top:4px}
+.err code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px}
+.off-box{opacity:.62}
+.rad{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12px}
+.rad i{width:12px;height:12px;border-radius:50%;border:1.5px solid #8b95a3;margin-top:3px;flex:none;display:block}
+.rad i.on{border-color:#1f5fae;background:radial-gradient(#1f5fae 40%,#fff 45%)}
+</style>
+</helmet>
+<div class="app">
+  <nav class="side" aria-label="主导航">
+    <div class="brand"><i aria-hidden="true"></i>时迹</div>
+    <a class="nv" href="Main.dc.html">需求</a>
+    <a class="nv" href="Today.dc.html">今日</a>
+    <a class="nv" href="Insights.dc.html">洞察</a>
+    <a class="nv on" href="Sources.dc.html">数据源与设置</a>
+    <div class="sp"></div>
+    <div class="priv">数据只在本机处理，不上传。大模型建议默认关闭。</div>
+  </nav>
+  <main class="main">
+    <div class="col l">
+      <div><h1>数据源与设置</h1><div class="sub">启动时自动发现本机已装工具的日志，只读，不改动原文件。</div></div>
+      <div class="card">
+        <h2>数据源 <span>每个工具对应一个适配器</span></h2>
+        <div class="srow h"><div>工具</div><div>日志位置</div><div>状态</div><div>精度</div><div style="text-align:right">启用</div></div>
+        <sc-for list="{{sources}}" as="s" hint-placeholder-count="6">
+          <div class="srow">
+            <b>{{s.name}}</b>
+            <div class="path" title="{{s.path}}">{{s.path}}</div>
+            <div class="st">{{s.st}}<small>{{s.sm}}</small></div>
+            <div><span class="bd {{s.bc}}">{{s.bt}}</span></div>
+            <span class="tg {{s.tc}}" role="img" aria-label="{{s.tl}}"></span>
+          </div>
+        </sc-for>
+        <div class="note">想接新工具：写一个适配器配置文件（声明式适配器，计划在后续版本支持）。</div>
+      </div>
+      <div class="card">
+        <h2>能力矩阵 <span>适配器读到了哪些字段；没有的字段显示「–」，不会估算</span></h2>
+        <div class="mx">
+          <div class="h t">工具</div><div class="h">逐事件时间戳</div><div class="h">token</div><div class="h">模型</div><div class="h">费用</div><div class="h">子 agent</div><div class="h">权限等待</div><div class="h">分支</div>
+          <sc-for list="{{caps}}" as="c" hint-placeholder-count="5">
+            <div class="t">{{c.name}}</div>
+            <sc-for list="{{c.cells}}" as="x" hint-placeholder-count="7"><div class="{{x.cls}}">{{x.t}}</div></sc-for>
+          </sc-for>
+        </div>
+        <div class="note">表中为示意，实际以每次扫描时适配器读到的日志为准。没有逐事件时间戳的工具归为「粗略」，只显示次数和跨度。</div>
+      </div>
+    </div>
+    <div class="col r">
+      <div class="card">
+        <h2>计时与聚合</h2>
+        <div class="frow"><span>空闲阈值</span><span class="inp">10 分钟</span></div>
+        <div class="frow"><span>需求聚合窗口</span><span class="inp">4 小时</span></div>
+        <div class="frow"><span>阶段规则</span><button class="btn" type="button">编辑规则</button></div>
+        <div class="note">改阈值后会立即重算；手动合并、拆分、改名和改阶段会保留。</div>
+      </div>
+      <div class="card off-box">
+        <h2>大模型建议 <span class="bd bd-no">已关闭</span></h2>
+        <div class="frow"><span>启用</span><span class="tg off" role="img" aria-label="关闭"></span></div>
+        <div style="font-size:12px;color:#3b4552;margin:6px 0 2px">发送范围（打开后选择）</div>
+        <div class="rad"><i class="on"></i><span><b>只发聚合数</b>（默认）</span></div>
+        <div class="rad"><i></i><span>加上需求名</span></div>
+        <div class="rad"><i></i><span>加上分段摘要</span></div>
+        <div class="note">可接 Anthropic、OpenAI 兼容接口或本机 Ollama。每次发送前都会预览内容，密钥存系统钥匙串。</div>
+      </div>
+      <div class="card err">
+        <h2>1 个文件解析失败</h2>
+        <div class="m"><code>~/.codex/sessions/2026/11/04/rollout-2026-11-04T10-12.jsonl</code></div>
+        <div class="m">第 218 行不是有效 JSON，已跳过该行之后的内容；其他文件不受影响。</div>
+        <div style="margin-top:8px"><button class="btn" type="button">重新扫描</button></div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sources = [
+      { name: 'Claude Code', path: '~/.claude/projects', st: '已发现', sm: '128 个会话', bc: 'bd-ex', bt: '精确', tc: '', tl: '已启用' },
+      { name: 'Codex CLI', path: '~/.codex/sessions', st: '已发现', sm: '41 个会话 · 1 个文件失败', bc: 'bd-ex', bt: '精确', tc: '', tl: '已启用' },
+      { name: 'pi', path: '~/.pi/agent/sessions', st: '已发现', sm: '17 个会话', bc: 'bd-ex', bt: '精确', tc: '', tl: '已启用' },
+      { name: 'omp', path: '~/.omp/agent/sessions', st: '已发现', sm: '9 个会话', bc: 'bd-ex', bt: '精确', tc: '', tl: '已启用' },
+      { name: 'Cursor 转录', path: '~/.cursor/projects/*/agent-transcripts', st: '已发现', sm: '22 个会话', bc: 'bd-co', bt: '粗略', tc: '', tl: '已启用' },
+      { name: 'Cursor IDE', path: '（全局数据库）', st: '暂不支持', sm: '后续版本', bc: 'bd-no', bt: '–', tc: 'off', tl: '未启用' }
+    ];
+    const Y = { t: '有', cls: 'y' };
+    const N = { t: '–', cls: 'n' };
+    const caps = [
+      { name: 'Claude Code', cells: [Y, Y, Y, N, Y, Y, Y] },
+      { name: 'Codex CLI', cells: [Y, Y, Y, N, N, N, N] },
+      { name: 'pi', cells: [Y, Y, Y, Y, N, N, Y] },
+      { name: 'omp', cells: [Y, Y, Y, Y, N, N, Y] },
+      { name: 'Cursor 转录', cells: [N, N, N, N, N, N, N] }
+    ];
+    return { sources, caps };
+  }
+}
+</script>
+</body>
+</html>
