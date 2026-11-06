@@ -110,6 +110,25 @@ async function idxLine() {
   } catch { }
 }
 setInterval(idxLine, 15000);
+
+/* ---------- 新版本提示 ---------- */
+// 只显示指向本仓库 Release 页面的链接；「稍后」只隐藏当前这个版本，出更新的版本还会提示。
+const RELEASES = "https://github.com/crazyjums/timetrace/releases/";
+async function updLine() {
+  const el = $("#upd");
+  try {
+    const u = await api("/api/update"), r = u.status.latest;
+    let dismissed = ""; try { dismissed = localStorage.getItem("upd.dismiss") || ""; } catch { }
+    if (!u.status.available || !r || !String(r.url).startsWith(RELEASES) || dismissed === r.version) { el.hidden = true; return; }
+    el.innerHTML = `<b>有新版本 v${esc(r.version)}</b><div class="row"><a href="${esc(r.url)}" target="_blank" rel="noopener">查看并下载</a><button id="ud">稍后</button></div>`;
+    el.hidden = false;
+    $("#ud").onclick = () => { try { localStorage.setItem("upd.dismiss", r.version); } catch { } el.hidden = true; };
+  } catch { el.hidden = true; }
+}
+updLine();
+// 只读本机服务缓存的结果，不联网（真正向 GitHub 请求由服务每 6 小时做一次）。
+// 每分钟读一次：启动后服务约 5 秒才完成首次检查，页面要能尽快看到结果。
+setInterval(updLine, 60 * 1000);
 addEventListener("resize", () => layoutSegs(main));
 
 const RANGES = [["today", "今天"], ["week", "本周"], ["month", "本月"], ["all", "全部"]];
@@ -325,7 +344,8 @@ async function insights() {
 
 /* ---------- 数据源与设置 ---------- */
 async function settings() {
-  const [st, src] = await Promise.all([api("/api/settings"), api("/api/sources")]);
+  const [st, src, up] = await Promise.all([api("/api/settings"), api("/api/sources"), api("/api/update")]);
+  const us = up.status, cur = us.current && us.current !== "dev" ? "v" + us.current : "开发版（不提示更新）";
   const status = t => !t.implemented ? `<b>暂不支持</b><div class="sub">适配器未实现</div>` : !t.configured ? `<b>未配置</b><div class="sub">添加目录后启用</div>` :
     t.missing ? `<b>目录不可用</b><div class="sub">检查路径</div>` : `<b>已发现</b><div class="sub">${t.sessions} 个会话${t.failed ? ` · ${t.failed} 个文件失败` : ""}</div>`;
   let h = `<div><h1>数据源与设置</h1><div class="sub">启动时自动发现本机已装工具的日志，只读，不改原文件。</div></div><div class="cols" style="grid-template-columns:1fr 340px"><div class="stack">
@@ -347,13 +367,22 @@ async function settings() {
     <div class="sub" style="margin-top:6px">发送范围（打开后选择）</div>` +
     [["counts", "只发聚合数（默认）"], ["names", "加上需求名"], ["segments", "加上分段摘要"]].map(([v, t]) => `<label style="display:block;margin:4px 0"><input type="radio" name="ll" value="${v}" ${st.llm.level === v ? "checked" : ""}> ${t}</label>`).join("") +
     `<div class="kv"><span>地址</span><input id="lu" type="text" size="22" value="${esc(st.llm.endpoint)}" placeholder="http://127.0.0.1:11434"></div><div class="kv"><span>模型</span><input id="lm" type="text" size="16" value="${esc(st.llm.model)}"></div>
-    <div class="sub">可接本机 Ollama。每次发送前都会预览内容。</div></div>` +
+    <div class="sub">可接本机 Ollama。每次发送前都会预览内容。</div></div>
+  <div class="card"><h3>检查更新</h3>
+    <div class="kv"><span>当前版本</span><b>${esc(cur)}</b></div>
+    <div class="kv"><span>自动检查更新</span><span class="sw-t"><input type="checkbox" id="uc" ${up.enabled ? "checked" : ""} aria-label="自动检查更新"></span></div>
+    <div class="kv"><span>最新版本</span><span>${us.latest ? `<a href="${String(us.latest.url).startsWith(RELEASES) ? esc(us.latest.url) : "#"}" target="_blank" rel="noopener">v${esc(us.latest.version)}</a>${us.available ? ' <span class="pill run">可更新</span>' : ' <span class="pill end">已是最新</span>'}` : DASH}</span></div>
+    <div class="kv"><span>上次检查</span><span class="sub">${us.checkedAt && !us.checkedAt.startsWith("0001") ? when(us.checkedAt) : "还没有检查过"}${us.error ? ` · <span style="color:var(--bad-fg)">${esc(us.error)}</span>` : ""}</span></div>
+    <div class="sub" style="margin:8px 0">只向 GitHub 请求最新版本号，不发送任何本地数据；每 6 小时一次。有新版本时在左侧栏提示，下载和替换由你自己完成。</div>
+    <button id="uk">立即检查</button></div>` +
     (src.parseErrors.length ? `<div class="errcard"><b>${src.parseErrors.length} 个文件解析失败</b>` + src.parseErrors.slice(0, 5).map(e => `<code>${esc(e.File)}</code><div>${esc(e.Reason)}，其他文件不受影响。</div>`).join("") + `<button id="rs" style="margin-top:8px">重新扫描</button></div>` : "") + `</div></div>`;
   main.innerHTML = h;
-  const collect = () => ({ ...st, idle_minutes: +$("#idle").value, window_hours: +$("#win").value, llm: { enabled: $("#le").checked, level: (main.querySelector('input[name=ll]:checked') || {}).value || "counts", endpoint: $("#lu").value.trim(), model: $("#lm").value.trim() } });
+  const collect = () => ({ ...st, no_update_check: !$("#uc").checked, idle_minutes: +$("#idle").value, window_hours: +$("#win").value, llm: { enabled: $("#le").checked, level: (main.querySelector('input[name=ll]:checked') || {}).value || "counts", endpoint: $("#lu").value.trim(), model: $("#lm").value.trim() } });
   const save = async () => { try { await post("/api/settings", collect(), "PUT"); return true; } catch (e) { $("#sm").innerHTML = `<span style="color:var(--bad-fg)">${esc(e.message)}</span>`; return false; } };
   $("#sv").onclick = async () => { if (await save()) { $("#sm").textContent = "已保存"; route(true); } };
   $("#le").onchange = async () => { if (await save()) route(true); };
+  $("#uc").onchange = async () => { if (await save()) route(true); };
+  $("#uk").onclick = async () => { const b = $("#uk"); b.disabled = true; b.textContent = "检查中…"; try { await post("/api/update", {}); } catch { } await updLine(); route(true); };
   main.querySelectorAll("[data-en]").forEach(c => c.onchange = async () => { st.sources[+c.dataset.en].enabled = c.checked; if (await save()) route(true); });
   main.querySelectorAll("[data-dir]").forEach(a => a.onclick = e => { e.preventDefault(); const i = +a.dataset.dir; const v = prompt("日志目录", st.sources[i].dir); if (v && v.trim()) { st.sources[i].dir = v.trim(); save().then(() => route(true)); } });
   const rs = $("#rs"); if (rs) rs.onclick = async () => { rs.disabled = true; rs.textContent = "扫描中…"; await api("/api/sources?refresh=1"); route(true); };

@@ -7,8 +7,12 @@ const dst = f => require('path').join(out, f);
 
 (async () => {
   const b = await chromium.launch(); const errs = [];
-  const mk = async scheme => {
+  // 检查更新：固定返回结果，截图不依赖网络，也不随 GitHub 上的实际版本变化
+  const upd = available => JSON.stringify({ enabled: true, status: { current: '0.1.10', available, checkedAt: new Date().toISOString(),
+    latest: { version: available ? '0.1.11' : '0.1.10', name: '', url: 'https://github.com/crazyjums/timetrace/releases/tag/v0.1.11', publishedAt: new Date().toISOString(), notes: '' } } });
+  const mk = async (scheme, available = false) => {
     const c = await b.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2, colorScheme: scheme, locale: 'zh-CN' });
+    await c.route('**/api/update', r => r.fulfill({ contentType: 'application/json', body: upd(available) }));
     const p = await c.newPage();
     p.on('pageerror', e => errs.push(String(e))); p.on('console', m => m.type() === 'error' && errs.push(m.text()));
     return p;
@@ -29,6 +33,12 @@ const dst = f => require('path').join(out, f);
   await p.goto(U + '#/today'); await p.waitForSelector('.trow'); await p.waitForTimeout(300); await p.screenshot({ path: dst('today.png') });
   await p.goto(U + '#/insights'); await p.waitForSelector('.rank'); await p.screenshot({ path: dst('insights.png') });
   await p.goto(U + '#/settings'); await p.waitForSelector('.cap'); await p.screenshot({ path: dst('settings.png') });
+
+  // 新版本提示：侧栏提示 + 设置页「检查更新」卡片
+  const u = await mk('light', true);
+  await u.goto(U + '#/settings'); await u.waitForSelector('#uk'); await u.waitForSelector('#upd:not([hidden])');
+  await u.evaluate(() => { const c = document.querySelector('#uk').closest('.card'); window.scrollTo(0, c.getBoundingClientRect().top + window.scrollY - 470); });
+  await u.waitForTimeout(300); await u.screenshot({ path: dst('update.png') });
 
   const d = await mk('dark');
   await d.goto(U + '#/s/auth-a1'); await d.waitForSelector('.tsep'); await d.evaluate(topOfChat); await d.waitForTimeout(300);

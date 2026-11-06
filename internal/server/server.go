@@ -26,6 +26,7 @@ import (
 	"github.com/crazyjums/timetrace/internal/llm"
 	"github.com/crazyjums/timetrace/internal/model"
 	"github.com/crazyjums/timetrace/internal/store"
+	"github.com/crazyjums/timetrace/internal/update"
 )
 
 //go:embed web
@@ -34,6 +35,7 @@ var webFS embed.FS
 type Server struct {
 	StatePath string
 	Index     *index.Index
+	Update    *update.Checker // 检查 GitHub 上的新版本；只请求版本号，不发送本地数据
 
 	mu   sync.Mutex
 	memo struct {
@@ -65,7 +67,7 @@ type srcInfo struct {
 
 // New：cachePath 为空则不持久化索引（测试用）。
 func New(statePath, cachePath string) *Server {
-	return &Server{StatePath: statePath, Index: index.New(cachePath, adapterFor), wake: make(chan struct{}, 1)}
+	return &Server{StatePath: statePath, Index: index.New(cachePath, adapterFor), Update: update.New(""), wake: make(chan struct{}, 1)}
 }
 
 // adapters 是内置适配器注册表；新增工具只在这里加一行。
@@ -107,6 +109,7 @@ func (s *Server) Start(ctx context.Context, interval time.Duration) {
 	} else if st := s.Index.Status(); st.Ready {
 		log.Printf("已载入索引缓存：%d 个会话", st.Sessions)
 	}
+	s.startUpdateCheck(ctx)
 	go func() {
 		t := time.NewTicker(interval)
 		defer t.Stop()
@@ -119,6 +122,28 @@ func (s *Server) Start(ctx context.Context, interval time.Duration) {
 				return
 			case <-t.C:
 			case <-s.wake:
+			}
+		}
+	}()
+}
+
+// updateEvery 是自动检查更新的间隔；启动后先等一小会儿再查，不影响启动速度。
+const updateEvery = 6 * time.Hour
+
+func (s *Server) startUpdateCheck(ctx context.Context) {
+	go func() {
+		wait := 5 * time.Second
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(wait):
+			}
+			wait = updateEvery
+			if st, err := store.Load(s.StatePath); err == nil && !st.Settings.NoUpdateCheck {
+				if r := s.Update.Check(ctx); r.Available {
+					log.Printf("发现新版本 v%s（当前 %s）", r.Latest.Version, r.Current)
+				}
 			}
 		}
 	}()
@@ -176,6 +201,7 @@ func (s *Server) Handler() http.Handler {
 	api("/api/requirements/", s.requirement)
 	api("/api/turn", s.turn)
 	api("/api/status", s.status)
+	api("/api/update", s.updateStatus)
 	api("/api/session/", s.session)
 	api("/api/today", s.today)
 	api("/api/insights", s.insights)
@@ -859,4 +885,14 @@ func (s *Server) transcript(w http.ResponseWriter, sid string) {
 		out = append(out, x)
 	}
 	writeJSON(w, map[string]any{"id": sid, "file": path, "messages": out})
+}
+
+// updateStatus：GET 返回缓存的检查结果（不联网）；POST 立即检查一次（用户点「立即检查」）。
+func (s *Server) updateStatus(w http.ResponseWriter, r *http.Request) {
+	st, _ := store.Load(s.StatePath)
+	res := s.Update.Status()
+	if r.Method == http.MethodPost {
+		res = s.Update.Check(r.Context())
+	}
+	writeJSON(w, map[string]any{"enabled": !st.Settings.NoUpdateCheck, "status": res})
 }

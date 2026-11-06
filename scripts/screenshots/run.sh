@@ -3,6 +3,7 @@
 # 用法：scripts/screenshots/run.sh [输出目录，默认 docs/screenshots]
 # 依赖：Go、Python 3、Node.js 与 Playwright。
 # 演示日志默认写到 /home/u/.claude/projects（与截图里显示的路径一致），可用 DEMO_DIR 覆盖。
+# 截图时不联网：服务关闭自动检查更新，「检查更新」的结果由 shoot.js 固定返回。
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 OUT="${1:-docs/screenshots}"
@@ -14,7 +15,7 @@ trap 'kill "${PID:-}" 2>/dev/null || true; rm -rf "$WORK"' EXIT
 rm -rf "$DEMO_DIR" && mkdir -p "$DEMO_DIR" "$OUT"
 python3 -I scripts/screenshots/gen-demo.py "$DEMO_DIR"
 cat > "$WORK/state.json" <<JSON
-{"settings":{"idle_minutes":10,"window_hours":4,"llm":{"enabled":false,"endpoint":"","model":"","level":"counts"},
+{"settings":{"idle_minutes":10,"window_hours":4,"no_update_check":true,"llm":{"enabled":false,"endpoint":"","model":"","level":"counts"},
  "sources":[{"adapter":"claude-code","dir":"$DEMO_DIR","enabled":true}]},"overrides":{}}
 JSON
 go build -o "$WORK/server" ./cmd/timetrace-server
