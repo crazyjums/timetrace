@@ -56,7 +56,7 @@ var csrf = map[string]string{"X-Timetrace": "1"}
 
 func TestRequirementsAndBadFile(t *testing.T) {
 	ts, _ := setup(t)
-	code, body := do(t, "GET", ts.URL+"/api/requirements", "", nil)
+	code, body := do(t, "GET", ts.URL+"/api/requirements?range=all", "", nil)
 	if code != 200 {
 		t.Fatal(code, body)
 	}
@@ -138,5 +138,33 @@ func TestStaticIndex(t *testing.T) {
 	c, b := do(t, "GET", ts.URL+"/", "", nil)
 	if c != 200 || !strings.Contains(b, "时迹") {
 		t.Fatal(c)
+	}
+}
+
+func TestNewEndpointsShape(t *testing.T) {
+	ts, _ := setup(t)
+	for _, path := range []string{"/api/today", "/api/insights?range=week", "/api/insights?range=month", "/api/sources", "/api/requirements?range=today"} {
+		c, b := do(t, "GET", ts.URL+path, "", nil)
+		if c != 200 || !json.Valid([]byte(b)) {
+			t.Fatalf("%s: %d %s", path, c, b)
+		}
+		// 前端遍历这些字段，不能是 null
+		for _, bad := range []string{`"suggestions":null`, `"ranking":null`, `"topReqs":null`, `"coarse":null`, `"items":null`, `"requirements":null`} {
+			if strings.Contains(b, bad) {
+				t.Errorf("%s 含 %s", path, bad)
+			}
+		}
+	}
+	_, b := do(t, "GET", ts.URL+"/api/sources", "", nil)
+	if !strings.Contains(b, `"implemented":false`) || !strings.Contains(b, `"capCols"`) {
+		t.Errorf("sources 应列出未实现的工具与能力矩阵: %s", b)
+	}
+	_, b = do(t, "GET", ts.URL+"/api/requirements/s1", "", nil)
+	if !strings.Contains(b, `"siblings"`) || !strings.Contains(b, `"sessionList"`) {
+		t.Errorf("明细缺字段: %s", b)
+	}
+	_, b = do(t, "GET", ts.URL+"/api/turn?sid=s1&i=1", "", nil)
+	if !strings.Contains(b, `"dur":5`) { // Write 工具耗时 5s
+		t.Errorf("工具耗时缺失: %s", b)
 	}
 }

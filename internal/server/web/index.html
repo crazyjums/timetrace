@@ -8,18 +8,22 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
-  <div class="brand">时迹 <small>Timetrace</small></div>
-  <nav id="nav">
-    <a href="#/" data-p="list">需求</a>
-    <a href="#/today" data-p="today">今日</a>
-    <a href="#/insights" data-p="insights">洞察</a>
-    <a href="#/settings" data-p="settings">设置</a>
-  </nav>
-  <button id="theme" class="ghost" aria-label="切换主题" title="切换主题">主题</button>
-</header>
-<main id="main" tabindex="-1"></main>
-<aside id="drawer" class="drawer" hidden aria-label="对话抽屉"></aside>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><i></i>时迹</div>
+    <nav id="nav">
+      <a class="nv" href="#/" data-p="list">需求</a>
+      <a class="nv" href="#/today" data-p="today">今日</a>
+      <a class="nv" href="#/insights" data-p="insights">洞察</a>
+      <a class="nv" href="#/settings" data-p="settings">数据源与设置</a>
+    </nav>
+    <div class="sp"></div>
+    <button id="theme" class="nv ghost" title="切换亮 / 暗主题">切换主题</button>
+    <div class="priv">数据只在本机处理，不上传。<br>大模型建议默认关闭。</div>
+  </aside>
+  <main id="main" class="main" tabindex="-1"></main>
+</div>
+<dialog id="dlg"></dialog>
 <script src="icons.js"></script>
 <script src="app.js"></script>
 </body>

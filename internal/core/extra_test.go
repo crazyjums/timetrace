@@ -48,19 +48,22 @@ func TestTodayRunning(t *testing.T) {
 	reqs := core.Aggregate([]*model.Session{s}, cfg)
 	now := s.EndedAt.Add(2 * time.Minute) // 最后一轮刚结束 2 分钟
 	items := core.Today(reqs, now, cfg)
-	if len(items) != 1 || !items[0].Running {
+	if len(items) != 1 || items[0].Status != "running" {
 		t.Fatalf("items=%+v", items)
 	}
 	// 最后一轮从 10:30:00 开始，算到 now=10:30:00(最后事件时间 10:30:00)+2m
-	if items[0].Active < 2*time.Minute {
-		t.Errorf("进行中的轮应算到现在: %v", items[0].Active)
+	if items[0].Stats.Active < 2*time.Minute {
+		t.Errorf("进行中的轮应算到现在: %v", items[0].Stats.Active)
 	}
 }
 
 func TestInsightsNoPrevNoDelta(t *testing.T) {
-	reqs := core.Aggregate(load(t), core.DefaultConfig())
-	rep := insights.Build(reqs, nil)
-	if rep.Delta != nil || rep.TopPhase == nil || len(rep.Suggestions) > 4 {
+	var cur []insights.Named
+	for _, r := range core.Aggregate(load(t), core.DefaultConfig()) {
+		cur = append(cur, insights.Named{Key: r.Key(), Name: r.Name, S: r.Stats(time.Time{}, time.Time{})})
+	}
+	rep := insights.Build(cur, nil)
+	if rep.HasPrev || rep.Top == nil || len(rep.Suggestions) > 4 {
 		t.Errorf("%+v", rep)
 	}
 }
@@ -96,5 +99,62 @@ func TestStoreRoundtrip(t *testing.T) {
 	g, _ := store.Load(p)
 	if g.Overrides.Rename["a"] != "b" {
 		t.Error("未持久化")
+	}
+}
+
+func TestStatsRangeAndLongTurn(t *testing.T) {
+	r := core.Aggregate(load(t), core.DefaultConfig())[0]
+	all := r.Stats(time.Time{}, time.Time{})
+	if all.Turns != 3 || all.AI != 70*time.Second || all.Wait != 150*time.Second {
+		t.Fatalf("%+v", all)
+	}
+	// 只含第一轮开始之后的 5 分钟：第二轮(10:03)在内，第三轮(10:30)不在
+	from := all.First
+	got := r.Stats(from, from.Add(5*time.Minute))
+	if got.Turns != 2 || got.ByPhase[core.Wait] != 150*time.Second {
+		t.Errorf("范围统计错误: %+v", got)
+	}
+	if all.LongTurns != 0 {
+		t.Errorf("没有超过 10 分钟的轮: %d", all.LongTurns)
+	}
+}
+
+func TestPeriodWeekStartsMonday(t *testing.T) {
+	now := time.Date(2026, 11, 6, 14, 0, 0, 0, time.UTC) // 周五
+	from, to, pf, pt := core.Period("week", now)
+	if from.Weekday() != time.Monday || from.Day() != 2 || to.Day() != 9 || !pt.Equal(from) || pf.Day() != 26 {
+		t.Errorf("week: %v %v %v %v", from, to, pf, pt)
+	}
+	if f, _, pf2, _ := core.Period("all", now); !f.IsZero() || !pf2.IsZero() {
+		t.Error("all 没有范围与上期")
+	}
+}
+
+func TestMergeAcrossCwdAndToolDurations(t *testing.T) {
+	base := load(t)[0]
+	other := *base
+	other.ID, other.Cwd = "x2", "/w/other"
+	other.StartedAt, other.EndedAt = base.EndedAt.Add(30*time.Hour), base.EndedAt.Add(31*time.Hour)
+	cfg := core.DefaultConfig()
+	if n := len(core.Aggregate([]*model.Session{base, &other}, cfg)); n != 2 {
+		t.Fatalf("默认应 2 个需求: %d", n)
+	}
+	cfg.Overrides = &core.Overrides{Merge: [][]string{{"s1", "x2"}}}
+	if n := len(core.Aggregate([]*model.Session{base, &other}, cfg)); n != 1 {
+		t.Errorf("人工合并应允许跨目录: %d", n)
+	}
+	// 第二轮：Write(10:03:20) 的工具耗时 = 到下一个事件 tool_result(10:03:25) = 5s
+	turn := core.BuildTurns(base, core.DefaultConfig())[1]
+	var found bool
+	for _, it := range turn.Items {
+		if it.Kind == "tool" && it.Text == "Write" {
+			found = true
+			if it.Dur != 5*time.Second {
+				t.Errorf("Write 耗时=%v", it.Dur)
+			}
+		}
+	}
+	if !found {
+		t.Error("没有 Write 工具项")
 	}
 }

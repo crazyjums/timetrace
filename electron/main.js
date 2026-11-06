@@ -8,10 +8,10 @@ let server;
 
 function startServer() {
   return new Promise((resolve, reject) => {
-    const bin = app.isPackaged
-      ? path.join(process.resourcesPath, "timetrace-server")
-      : path.join(__dirname, "bin", "timetrace-server");
-    server = spawn(bin, ["--port", "0"], { stdio: ["ignore", "pipe", "inherit"] });
+    const exe = "timetrace-server" + (process.platform === "win32" ? ".exe" : "");
+    const bin = app.isPackaged ? path.join(process.resourcesPath, exe) : path.join(__dirname, "bin", exe);
+    // windowsHide：不弹出黑色命令行窗口
+    server = spawn(bin, ["--port", "0"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
     server.on("error", reject);
     server.on("exit", code => { if (!app.isQuitting) reject(new Error("服务异常退出，code=" + code)); });
     let buf = "";
@@ -29,7 +29,7 @@ async function createWindow() {
   try { url = await startServer(); }
   catch (e) { dialog.showErrorBox("时迹启动失败", String(e.message)); app.quit(); return; }
   const win = new BrowserWindow({
-    width: 1200, height: 860, title: "时迹 Timetrace",
+    width: 1200, height: 860, title: "时迹 Timetrace", autoHideMenuBar: true,
     webPreferences: { nodeIntegration: false, contextIsolation: true, sandbox: true },
   });
   const origin = new URL(url).origin;
@@ -38,6 +38,15 @@ async function createWindow() {
   win.loadURL(url);
 }
 
-app.whenReady().then(createWindow);
+// 单实例：重复双击只会聚焦已有窗口
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const w = BrowserWindow.getAllWindows()[0];
+    if (w) { if (w.isMinimized()) w.restore(); w.focus(); }
+  });
+  app.whenReady().then(createWindow);
+}
 app.on("before-quit", () => { app.isQuitting = true; if (server) server.kill(); });
 app.on("window-all-closed", () => app.quit());

@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -56,12 +57,6 @@ func adapterFor(id string) adapter.Adapter {
 	}
 	return nil
 }
-
-// capabilities：适配器声明能提供的字段。缺失的字段界面一律显示「–」。
-var capabilities = map[string][]string{
-	"claude-code": {"逐事件时间戳", "用户消息", "AI 文字回复", "工具调用名与参数", "子 agent 标记"},
-}
-var missingFields = map[string][]string{"claude-code": {"token", "模型", "费用", "权限等待"}}
 
 func (s *Server) load(force bool) (*snapshot, store.File, error) {
 	st, err := store.Load(s.StatePath)
@@ -166,61 +161,79 @@ func (s *Server) aggregate(force bool) ([]*core.Requirement, *snapshot, store.Fi
 	return core.Aggregate(sn.sessions, cfg), sn, st, cfg, nil
 }
 
+func validRange(r string) string {
+	switch r {
+	case "today", "week", "month", "all":
+		return r
+	}
+	return "week"
+}
+
+func statsJSON(st core.Stats) map[string]any {
+	return map[string]any{"active": secs(st.Active), "ai": secs(st.AI), "wait": secs(st.Wait), "idle": secs(st.Idle),
+		"byPhase": phaseSecs(st.ByPhase), "turns": st.Turns, "longTurns": st.LongTurns, "sessions": st.Sessions, "coarse": st.Coarse}
+}
+
+// live：该需求是否有「运行中」的会话（最后事件距现在小于空闲阈值，且 AI 还在干活）。
+func live(r *core.Requirement, now time.Time, cfg core.Config) bool {
+	for _, ss := range r.Sessions {
+		if ss.Tail == core.TailWorking && !now.Before(ss.Session.EndedAt) && now.Sub(ss.Session.EndedAt) < cfg.IdleThreshold {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Server) requirements(w http.ResponseWriter, r *http.Request) {
-	reqs, sn, _, _, err := s.aggregate(r.URL.Query().Get("refresh") == "1")
+	reqs, sn, _, cfg, err := s.aggregate(r.URL.Query().Get("refresh") == "1")
 	if err != nil {
 		fail(w, 500, err)
 		return
 	}
-	type row struct {
-		Key      string             `json:"key"`
-		Name     string             `json:"name"`
-		Cwd      string             `json:"cwd"`
-		Active   float64            `json:"active"`
-		ByPhase  map[string]float64 `json:"byPhase"`
-		Tools    []string           `json:"tools"`
-		Sessions int                `json:"sessions"`
-		Coarse   int                `json:"coarse"`
-		Turns    int                `json:"turns"`
-		End      time.Time          `json:"end"`
-		Start    time.Time          `json:"start"`
-	}
-	rows := []row{}
+	rng := validRange(r.URL.Query().Get("range"))
+	now := time.Now()
+	from, to, _, _ := core.Period(rng, now)
+	home, _ := os.UserHomeDir()
+	rows := []map[string]any{}
 	for _, q := range reqs {
-		n := 0
-		for _, ss := range q.Sessions {
-			n += len(ss.Turns)
+		st := q.Stats(from, to)
+		if st.Turns == 0 && st.Coarse == 0 {
+			continue
 		}
-		rows = append(rows, row{q.Key(), q.Name, q.Cwd, secs(q.Active), phaseSecs(q.ByPhase), q.Tools, len(q.Sessions), q.CoarseSessions, n, q.End, q.Start})
+		row := statsJSON(st)
+		row["key"], row["name"], row["cwd"], row["tools"] = q.Key(), q.Name, q.Cwd, q.Tools
+		row["end"], row["running"] = q.End, live(q, now, cfg)
+		rows = append(rows, row)
 	}
-	writeJSON(w, map[string]any{"requirements": rows, "parseErrors": sn.errs, "sources": len(sn.perSrc)})
+	writeJSON(w, map[string]any{"range": rng, "home": home, "requirements": rows, "parseErrors": sn.errs, "sources": len(sn.perSrc)})
 }
 
 func (s *Server) requirement(w http.ResponseWriter, r *http.Request) {
 	key := strings.TrimPrefix(r.URL.Path, "/api/requirements/")
-	reqs, _, _, _, err := s.aggregate(false)
+	reqs, _, _, cfg, err := s.aggregate(false)
 	if err != nil {
 		fail(w, 500, err)
 		return
 	}
+	home, _ := os.UserHomeDir()
+	now := time.Now()
 	for _, q := range reqs {
 		if q.Key() != key {
 			continue
 		}
 		type turn struct {
-			I      int       `json:"i"`
-			Start  time.Time `json:"start"`
-			AI     float64   `json:"ai"`
-			Wait   float64   `json:"wait"`
-			Idle   float64   `json:"idle"`
-			Phase  string    `json:"phase"`
-			Prompt string    `json:"prompt"`
+			I     int       `json:"i"`
+			Start time.Time `json:"start"`
+			AI    float64   `json:"ai"`
+			Wait  float64   `json:"wait"`
+			Idle  float64   `json:"idle"`
+			Phase string    `json:"phase"`
+			Long  bool      `json:"long"`
 		}
 		type sess struct {
 			ID        string    `json:"id"`
 			Tool      string    `json:"tool"`
 			Title     string    `json:"title"`
-			File      string    `json:"file"`
 			Precision string    `json:"precision"`
 			Start     time.Time `json:"start"`
 			End       time.Time `json:"end"`
@@ -228,16 +241,27 @@ func (s *Server) requirement(w http.ResponseWriter, r *http.Request) {
 			Turns     []turn    `json:"turns"`
 		}
 		out := []sess{}
+		toolCount := map[string]int{}
 		for _, ss := range q.Sessions {
-			x := sess{ss.Session.ID, ss.Session.Tool, ss.Session.Title, ss.Session.File, string(ss.Session.Precision), ss.Session.StartedAt, ss.Session.EndedAt, 0, []turn{}}
+			toolCount[ss.Session.Tool]++
+			x := sess{ss.Session.ID, ss.Session.Tool, ss.Session.Title, string(ss.Session.Precision), ss.Session.StartedAt, ss.Session.EndedAt, 0, []turn{}}
 			for i, t := range ss.Turns {
 				x.Active += secs(t.AI + t.Wait)
-				x.Turns = append(x.Turns, turn{i, t.Start, secs(t.AI), secs(t.Wait), secs(t.Idle), string(t.Phase), t.Prompt})
+				x.Turns = append(x.Turns, turn{i, t.Start, secs(t.AI), secs(t.Wait), secs(t.Idle), string(t.Phase), t.AI > core.LongTurn})
 			}
 			out = append(out, x)
 		}
-		writeJSON(w, map[string]any{"key": q.Key(), "name": q.Name, "cwd": q.Cwd, "active": secs(q.Active), "idle": secs(q.Idle),
-			"byPhase": phaseSecs(q.ByPhase), "coarse": q.CoarseSessions, "sessions": out})
+		sib := []map[string]string{}
+		for _, o := range reqs {
+			if o.Key() != key {
+				sib = append(sib, map[string]string{"key": o.Key(), "name": o.Name, "cwd": o.Cwd})
+			}
+		}
+		d := statsJSON(q.Stats(time.Time{}, time.Time{}))
+		d["key"], d["name"], d["cwd"], d["home"] = q.Key(), q.Name, q.Cwd, home
+		d["start"], d["end"], d["running"] = q.Start, q.End, live(q, now, cfg)
+		d["toolCount"], d["sessionList"], d["siblings"] = toolCount, out, sib
+		writeJSON(w, d)
 		return
 	}
 	http.NotFound(w, r)
@@ -256,16 +280,21 @@ func (s *Server) turn(w http.ResponseWriter, r *http.Request) {
 			if ss.Session.ID == sid && idx >= 0 && idx < len(ss.Turns) {
 				t := ss.Turns[idx]
 				type item struct {
-					Kind string    `json:"kind"`
-					T    time.Time `json:"t"`
-					Text string    `json:"text"`
-					Arg  string    `json:"arg"`
+					Kind   string    `json:"kind"`
+					T      time.Time `json:"t"`
+					Text   string    `json:"text"`
+					Arg    string    `json:"arg"`
+					Dur    float64   `json:"dur"`
+					Model  string    `json:"model"`
+					TokIn  int       `json:"tokIn"`
+					TokOut int       `json:"tokOut"`
 				}
 				items := []item{}
 				for _, it := range t.Items {
-					items = append(items, item{it.Kind, it.T, it.Text, it.Arg})
+					items = append(items, item{it.Kind, it.T, it.Text, it.Arg, secs(it.Dur), it.Model, it.TokIn, it.TokOut})
 				}
-				writeJSON(w, map[string]any{"phase": string(t.Phase), "ai": secs(t.AI), "items": items})
+				writeJSON(w, map[string]any{"i": idx, "sid": sid, "tool": ss.Session.Tool, "precision": string(ss.Session.Precision),
+					"start": t.Start, "phase": string(t.Phase), "ai": secs(t.AI), "branch": ss.Session.Branch, "items": items})
 				return
 			}
 		}
@@ -279,62 +308,129 @@ func (s *Server) today(w http.ResponseWriter, r *http.Request) {
 		fail(w, 500, err)
 		return
 	}
-	type row struct {
-		Name    string  `json:"name"`
-		Active  float64 `json:"active"`
-		Running bool    `json:"running"`
+	now := time.Now()
+	type block struct {
+		Start time.Time `json:"start"`
+		AI    float64   `json:"ai"`
+		Wait  float64   `json:"wait"`
+		Phase string    `json:"phase"`
 	}
-	rows := []row{}
-	var total float64
-	for _, it := range core.Today(reqs, time.Now(), cfg) {
-		rows = append(rows, row{it.Name, secs(it.Active), it.Running})
-		total += secs(it.Active)
+	var tot core.Stats
+	tot.ByPhase = map[core.Phase]time.Duration{}
+	rows := []map[string]any{}
+	for _, t := range core.Today(reqs, now, cfg) {
+		tot.Active += t.Stats.Active
+		tot.AI += t.Stats.AI
+		tot.Wait += t.Stats.Wait
+		tot.Idle += t.Stats.Idle
+		bl := []block{}
+		for _, b := range t.Blocks {
+			bl = append(bl, block{b.Start, secs(b.AI), secs(b.Wait), string(b.Phase)})
+		}
+		row := statsJSON(t.Stats)
+		row["key"], row["name"], row["tools"], row["status"] = t.Key, t.Name, t.Tools, t.Status
+		row["waitingFor"], row["endedAt"], row["blocks"] = secs(t.WaitingFor), t.EndedAt, bl
+		rows = append(rows, row)
 	}
-	writeJSON(w, map[string]any{"items": rows, "total": total})
+	writeJSON(w, map[string]any{"now": now, "idleMinutes": int(cfg.IdleThreshold.Minutes()), "items": rows, "total": statsJSON(tot)})
 }
 
 func (s *Server) insights(w http.ResponseWriter, r *http.Request) {
-	days, _ := strconv.Atoi(r.URL.Query().Get("days"))
-	if days <= 0 {
-		days = 7
-	}
-	sn, st, err := s.load(false)
+	reqs, _, _, _, err := s.aggregate(false)
 	if err != nil {
 		fail(w, 500, err)
 		return
 	}
-	cfg := st.Settings.Config()
-	cfg.Overrides = &st.Overrides
-	now, d := time.Now(), time.Duration(days)*24*time.Hour
-	in := func(from, to time.Time) []*model.Session {
-		var out []*model.Session
-		for _, x := range sn.sessions {
-			if !x.StartedAt.Before(from) && x.StartedAt.Before(to) {
-				out = append(out, x)
-			}
+	rng := r.URL.Query().Get("range")
+	if rng != "today" && rng != "month" {
+		rng = "week"
+	}
+	from, to, pf, pt := core.Period(rng, time.Now())
+	named := func(f, t time.Time) []insights.Named {
+		var o []insights.Named
+		for _, q := range reqs {
+			o = append(o, insights.Named{Key: q.Key(), Name: q.Name, S: q.Stats(f, t)})
 		}
-		return out
+		return o
 	}
-	cur := core.Aggregate(in(now.Add(-d), now), cfg)
-	prev := core.Aggregate(in(now.Add(-2*d), now.Add(-d)), cfg)
-	rep := insights.Build(cur, prev)
-	out := map[string]any{"days": days, "suggestions": append([]string{}, rep.Suggestions...), "topReqs": rep.TopReqs}
-	if rep.TopPhase != nil {
-		out["topPhase"] = map[string]any{"phase": string(rep.TopPhase.Phase), "sec": secs(rep.TopPhase.D), "pct": rep.TopPhase.Pct}
+	rep := insights.Build(named(from, to), named(pf, pt))
+	ph := func(p *insights.PhaseShare) any {
+		if p == nil {
+			return nil
+		}
+		return map[string]any{"phase": string(p.Phase), "sec": secs(p.D), "pct": p.Pct}
 	}
-	if rep.Delta != nil {
-		out["delta"] = map[string]float64{"cur": secs(rep.Delta.Cur), "prev": secs(rep.Delta.Prev)}
+	rank := []map[string]any{}
+	for _, p := range rep.Ranking {
+		rank = append(rank, map[string]any{"phase": string(p.Phase), "sec": secs(p.D), "pct": p.Pct})
+	}
+	top := []map[string]any{}
+	for _, n := range rep.TopReqs {
+		top = append(top, map[string]any{"key": n.Key, "name": n.Name, "active": secs(n.S.Active), "byPhase": phaseSecs(n.S.ByPhase)})
+	}
+	sug := []map[string]string{}
+	for _, x := range rep.Suggestions {
+		sug = append(sug, map[string]string{"title": x.Title, "detail": x.Detail, "try": x.Try, "basis": x.Basis})
+	}
+	out := map[string]any{"range": rng, "active": secs(rep.Active), "ai": secs(rep.AI), "wait": secs(rep.Wait), "waitPct": rep.WaitPct,
+		"top": ph(rep.Top), "second": ph(rep.Second), "ranking": rank, "topReqs": top, "coarse": append([]string{}, rep.CoarseReqs...), "suggestions": sug, "reqCount": len(rep.TopReqs)}
+	if rep.HasPrev {
+		out["prevActive"] = secs(rep.PrevActive)
 	}
 	writeJSON(w, out)
 }
 
+// 适配器目录：界面展示所有已知工具；只有已实现的才能启用。
+type toolInfo struct {
+	ID, Name, DefaultPath string
+	Precision             string // exact | coarse
+	Implemented           bool
+}
+
+var toolCatalog = []toolInfo{
+	{"claude-code", "Claude Code", "~/.claude/projects", "exact", true},
+	{"codex", "Codex CLI", "~/.codex/sessions", "exact", false},
+	{"pi", "pi", "~/.pi/agent/sessions", "exact", false},
+	{"omp", "omp", "~/.omp/agent/sessions", "exact", false},
+	{"cursor", "Cursor 转录", "~/.cursor/projects/*/agent-transcripts", "coarse", false},
+}
+
+// capCols 是能力矩阵的列；每个适配器声明自己提供哪些。没有的显示「–」，不估算。
+var capCols = []string{"逐事件时间戳", "token", "模型", "费用", "子 agent", "权限等待", "分支"}
+var capHas = map[string][]bool{"claude-code": {true, true, true, false, true, false, true}}
+
 func (s *Server) sources(w http.ResponseWriter, r *http.Request) {
-	sn, _, err := s.load(r.URL.Query().Get("refresh") == "1")
+	sn, st, err := s.load(r.URL.Query().Get("refresh") == "1")
 	if err != nil {
 		fail(w, 500, err)
 		return
 	}
-	writeJSON(w, map[string]any{"sources": sn.perSrc, "capabilities": capabilities, "missing": missingFields})
+	tools := []map[string]any{}
+	for _, t := range toolCatalog {
+		row := map[string]any{"id": t.ID, "name": t.Name, "defaultPath": t.DefaultPath, "precision": t.Precision, "implemented": t.Implemented,
+			"files": 0, "sessions": 0, "failed": 0, "configured": false, "enabled": false, "missing": false}
+		for i, src := range st.Settings.Sources {
+			if src.Adapter != t.ID {
+				continue
+			}
+			row["configured"], row["enabled"], row["dir"], row["index"] = true, src.Enabled, src.Dir, i
+			for _, info := range sn.perSrc {
+				if info.Dir == src.Dir && info.Adapter == src.Adapter {
+					row["files"], row["sessions"], row["failed"], row["missing"] = info.Files, info.Sessions, len(info.Errors), info.Missing
+				}
+			}
+		}
+		tools = append(tools, row)
+	}
+	caps := map[string][]bool{}
+	for _, t := range toolCatalog {
+		if h, ok := capHas[t.ID]; ok {
+			caps[t.ID] = h
+		} else {
+			caps[t.ID] = make([]bool, len(capCols))
+		}
+	}
+	writeJSON(w, map[string]any{"tools": tools, "capCols": capCols, "caps": caps, "parseErrors": sn.errs, "sources": sn.perSrc})
 }
 
 // sourceTest：添加数据源前的「测试扫描」，不保存任何东西。
@@ -346,7 +442,7 @@ func (s *Server) sourceTest(w http.ResponseWriter, r *http.Request) {
 	}
 	a := adapterFor(in.Adapter)
 	if a == nil {
-		fail(w, 400, fmt.Errorf("未知适配器 %q", in.Adapter))
+		fail(w, 400, fmt.Errorf("适配器 %q 尚未实现", in.Adapter))
 		return
 	}
 	ss, errs, err := adapter.ScanAll(a, in.Dir)
@@ -359,7 +455,7 @@ func (s *Server) sourceTest(w http.ResponseWriter, r *http.Request) {
 	for _, x := range ss {
 		turns += len(core.BuildTurns(x, cfg))
 	}
-	writeJSON(w, map[string]any{"sessions": len(ss), "turns": turns, "failed": len(errs), "errors": errs, "capabilities": capabilities[in.Adapter], "missing": missingFields[in.Adapter]})
+	writeJSON(w, map[string]any{"sessions": len(ss), "turns": turns, "failed": len(errs), "errors": errs})
 }
 
 func (s *Server) settings(w http.ResponseWriter, r *http.Request) {

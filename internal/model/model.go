@@ -17,6 +17,10 @@ type Event struct {
 	Text      string   // user 的真实 prompt 文本；assistant 的文字回复（可为空）
 	Tools     []string // assistant 事件中调用的工具名
 	ToolInput []string // 与 Tools 对应的关键参数（命令/文件路径），可为空
+	Thinking  bool     // assistant 事件含 thinking 块
+	Model     string   // 日志里没有则为空，界面显示「–」
+	TokIn     int      // 日志里没有则为 0（界面显示「–」）
+	TokOut    int
 }
 
 // Session 对应某个工具的一份日志文件。缺失字段用零值，界面显示「–」。
@@ -25,6 +29,7 @@ type Session struct {
 	Tool      string
 	File      string
 	Cwd       string
+	Branch    string // 日志里没有则为空
 	Title     string
 	Precision Precision
 	StartedAt time.Time
