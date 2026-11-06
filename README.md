@@ -42,6 +42,8 @@
 - **阶段拆分**:每一轮自动判定为聊方案 P、调研 R、写代码 C、改代码 F、测试 T、其他 O,另有「等我」W;空闲不计入。阶段由规则判定,可在界面里改单轮。
 - **四重编码**:阶段用颜色 + 纹理 + 字母 + 图标同时表达,不依赖颜色单独传达;亮 / 暗两套主题。
 - **时间轴与过程**:按会话展示每一轮,点开看这一轮的消息,以及每段 LLM、工具、子 agent 的耗时。
+- **会话还原成聊天记录**:每个会话都能打开详情,按轮还原完整对话——用户与 AI 的消息、可展开的工具调用(参数与输出)、子 agent 消息;每轮标注阶段与耗时,点时间轴直接跳转。
+- **首次建立索引,之后秒开**:第一次使用时把日志全部扫描一遍建立索引并保存在本机;之后各页面直接读内存中的索引,后台每 10 秒只增量处理新增或改动的文件。
 - **今日面板**:按真实时钟看今天各需求用了多久,进行中的轮算到「现在」,并区分运行中 / 等我中 / 已结束。
 - **本地洞察**:最耗时的阶段、较上期变化(上期有数据才显示)、Top 需求,以及最多 4 条带「依据」的建议。
 - **诚实的数据**:日志里没有的字段显示「–」,不估算;没有逐事件时间戳的工具归为「粗略档」,不显示耗时、不计入汇总。
@@ -60,7 +62,12 @@
     <td width="50%"><img src="docs/screenshots/settings.png" alt="数据源与设置"><br><sub><b>数据源与设置</b> · 数据源、能力矩阵、计时、大模型开关</sub></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="docs/screenshots/detail-dark.png" alt="暗色主题"><br><sub><b>暗色主题</b> · 跟随系统,也可在侧栏手动切换</sub></td>
+    <td width="50%"><img src="docs/screenshots/session.png" alt="会话详情"><br><sub><b>会话详情</b> · 还原成聊天记录,每轮标注阶段与耗时,工具调用可展开</sub></td>
+    <td width="50%"><img src="docs/screenshots/session-dark.png" alt="暗色主题"><br><sub><b>暗色主题</b> · 跟随系统,也可在侧栏手动切换</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/indexing.png" alt="首次建立索引"><br><sub><b>首次建立索引</b> · 列出将读取的目录,只读、不上传</sub></td>
+    <td width="50%"></td>
   </tr>
 </table>
 
@@ -89,8 +96,9 @@
 1. 打开应用。它会自动读取 Claude Code 的默认日志目录:
    - macOS / Linux:`~/.claude/projects`
    - Windows:`%USERPROFILE%\.claude\projects`(路径格式未在 Windows 上核对,不对的话到设置页修改)
-2. 「需求」页列出聚合后的需求,点一行进入明细,点时间轴上的一格查看这一轮的过程。
-3. 日志不在默认位置?到「数据源与设置」页点「修改」,或「添加另一个日志目录…」,先点「测试扫描」确认能识别再添加。
+2. 第一次打开会先建立索引,界面显示进度(参考:600 个会话、约 190 MB 日志,在 4 核机器上约 2 秒)。之后再打开会直接读取保存的索引。
+3. 「需求」页列出聚合后的需求,点一行进入明细,点时间轴上的一格查看这一轮的过程;点会话名或「查看完整对话」打开会话详情。
+4. 日志不在默认位置?到「数据源与设置」页点「修改」,或「添加另一个日志目录…」,先点「测试扫描」确认能识别再添加。
 
 你的人工修正(改名、合并、拆分、改阶段)和设置保存在本机一个 JSON 文件里,位置由系统的用户配置目录决定:
 
@@ -99,6 +107,14 @@
 | Linux | `~/.config/timetrace/state.json` |
 | macOS | `~/Library/Application Support/timetrace/state.json` |
 | Windows | `%AppData%\timetrace\state.json` |
+
+索引缓存保存在系统的用户缓存目录,只是原始日志的解析结果,可以随时删除,删除后下次启动会重新扫描:
+
+| 系统 | 路径 |
+| --- | --- |
+| Linux | `~/.cache/timetrace/index.gob` |
+| macOS | `~/Library/Caches/timetrace/index.gob` |
+| Windows | `%LocalAppData%\timetrace\index.gob` |
 
 ## 计时与阶段规则
 
@@ -141,7 +157,7 @@
 | pi / omp | ⏳ 计划中(缺真实日志样例) | 精确 |
 | Cursor 转录 | ⏳ 计划中(缺真实日志样例) | 粗略 |
 
-Claude Code 适配器的字段能力:逐事件时间戳、token、模型、子 agent、分支为「有」;费用、权限等待日志里分不出来,显示「–」,权限等待的时间计入 AI 时间。
+Claude Code 适配器的字段能力:逐事件时间戳、token、模型、子 agent、分支为「有」;费用、权限等待日志里分不出来,显示「–」,权限等待的时间计入 AI 时间。同一条 AI 消息在日志里会拆成多行且重复记录 usage,token 按消息 ID 去重;`input_tokens` 不含缓存命中。
 
 想让某个工具尽快支持?把一份**脱敏后的真实日志样例**发到 issue 里,比任何描述都有用。
 
@@ -178,7 +194,9 @@ go run ./cmd/timetrace split <会话ID>               # 从该会话起另起需
 ```mermaid
 flowchart LR
     L["原始日志<br/>(只读)"] --> A["适配器<br/>internal/adapter"]
-    A -->|"统一模型<br/>Session / Event"| C["核心层<br/>计时 · 阶段 · 聚合<br/>internal/core"]
+    A -->|"统一模型<br/>Session / Event"| X["索引<br/>增量 · 持久化<br/>internal/index"]
+    X --> C["核心层<br/>计时 · 阶段 · 聚合<br/>internal/core"]
+    A -.->|"按需还原对话"| S
     C --> I["洞察<br/>internal/insights"]
     C --> S["本机服务<br/>internal/server<br/>127.0.0.1 JSON API"]
     I --> S
@@ -196,6 +214,7 @@ flowchart LR
 | `internal/model` | 适配器输出的统一模型 |
 | `internal/adapter` | 适配器接口与 `claudecode` 实现 |
 | `internal/core` | 计时、阶段、需求聚合、区间统计、今日 |
+| `internal/index` | 解析索引:首次全量、之后按文件修改时间与大小增量更新,持久化到本机缓存 |
 | `internal/insights` | 本地规则洞察 |
 | `internal/llm` | 可选的大模型解读(默认关闭) |
 | `internal/store` | 人工修正与设置的本机存储 |
@@ -232,7 +251,8 @@ go test -race ./...
 1. 在 `internal/adapter/<tool>/` 实现 `adapter.Adapter` 接口(`ID` / `Discover` / `Parse`):
    - `Discover` 只读扫描目录,返回候选日志文件;
    - `Parse` 只读解析单个文件,输出 `model.Session`(含逐事件的 `model.Event`);解析失败要返回带原因的 error,**不要影响其他文件**;
-   - 日志里没有的字段保持零值,界面会显示「–」,**不要估算**。
+   - 日志里没有的字段保持零值,界面会显示「–」,**不要估算**;
+   - 想支持会话详情页,再实现可选的 `adapter.Transcriber` 接口(`Transcript`),返回完整消息;分轮规则在核心层,适配器只需把用户发言标成 `user`、工具回传标成 `tool_result`。
 2. 没有逐事件时间戳的工具,把 `Session.Precision` 设为 `model.Coarse`。
 3. 在 `internal/server/server.go` 的 `adapterFor`、`toolCatalog`、`capHas` 里各注册一行。
 4. 补测试:输入一份**脱敏的真实日志样例**,断言输出的统一模型(解析层必须能脱离界面单独测试)。
@@ -247,7 +267,9 @@ go test -race ./...
 - 阶段规则文件暂不支持自定义(界面里是只读的「查看规则」)。
 - 大模型解读的 Ollama 调用格式(`/api/chat`)凭记忆编写,**不确定**,首次使用请对照官方文档核对。
 - 没有代码签名、没有自动更新、没有自定义应用图标(目前是 Electron 默认图标)。
-- 声明式(YAML)适配器、单会话过程视图(span 树)尚未实现。
+- 阶段规则偏粗:只要一轮里跑过测试命令就判为「测试」。用真实日志验证时,大部分轮都被判成了测试,规则需要结合 PRD 调整。
+- 会话详情里单个工具输出超过 2 万字符会截断显示(原始日志不受影响);暂不支持在会话内搜索。
+- 声明式(YAML)适配器尚未实现。
 
 ## 贡献
 

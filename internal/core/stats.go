@@ -149,3 +149,17 @@ func Today(reqs []*Requirement, now time.Time, cfg Config) []TodayReq {
 	sort.Slice(out, func(i, j int) bool { return out[i].Stats.Active > out[j].Stats.Active })
 	return out
 }
+
+// TurnOf 给对话消息标上所属的轮（与 BuildTurns 的分轮规则一致：
+// 非子 agent 的 user 消息开启新一轮）。第一条用户消息之前的消息为 -1。
+func TurnOf(msgs []model.Message) []int {
+	out := make([]int, len(msgs))
+	cur := -1
+	for i, m := range msgs {
+		if m.Role == "user" && !m.Sidechain {
+			cur++
+		}
+		out[i] = cur
+	}
+	return out
+}

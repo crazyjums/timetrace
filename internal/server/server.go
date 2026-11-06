@@ -3,10 +3,12 @@
 package server
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -14,10 +16,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/crazyjums/timetrace/internal/adapter"
 	"github.com/crazyjums/timetrace/internal/adapter/claudecode"
 	"github.com/crazyjums/timetrace/internal/core"
+	"github.com/crazyjums/timetrace/internal/index"
 	"github.com/crazyjums/timetrace/internal/insights"
 	"github.com/crazyjums/timetrace/internal/llm"
 	"github.com/crazyjums/timetrace/internal/model"
@@ -29,15 +33,26 @@ var webFS embed.FS
 
 type Server struct {
 	StatePath string
-	mu        sync.Mutex
-	cache     *snapshot
+	Index     *index.Index
+
+	mu   sync.Mutex
+	memo struct {
+		ok        bool
+		gen       uint64
+		stateHash uint64
+		reqs      []*core.Requirement
+		cfg       core.Config
+	}
+	wake chan struct{}
 }
 
+// snapshot 是处理请求时用到的索引视图（来自内存索引，不读磁盘上的日志）。
 type snapshot struct {
-	at       time.Time
+	gen      uint64
 	sessions []*model.Session
 	errs     []model.ParseError
 	perSrc   []srcInfo
+	byID     map[string]*model.Session
 }
 
 type srcInfo struct {
@@ -48,7 +63,10 @@ type srcInfo struct {
 	Missing  bool               `json:"missing"`
 }
 
-func New(statePath string) *Server { return &Server{StatePath: statePath} }
+// New：cachePath 为空则不持久化索引（测试用）。
+func New(statePath, cachePath string) *Server {
+	return &Server{StatePath: statePath, Index: index.New(cachePath, adapterFor), wake: make(chan struct{}, 1)}
+}
 
 // adapters 是内置适配器注册表；新增工具只在这里加一行。
 func adapterFor(id string) adapter.Adapter {
@@ -58,37 +76,81 @@ func adapterFor(id string) adapter.Adapter {
 	return nil
 }
 
+func enabledSources(st store.File) []index.Source {
+	var out []index.Source
+	for _, src := range st.Settings.Sources {
+		if src.Enabled {
+			out = append(out, index.Source{Adapter: src.Adapter, Dir: src.Dir})
+		}
+	}
+	return out
+}
+
+func (s *Server) rescan() error {
+	st, err := store.Load(s.StatePath)
+	if err != nil {
+		return err
+	}
+	before, t0 := s.Index.Parsed.Load(), time.Now()
+	changed, err := s.Index.Scan(enabledSources(st))
+	if n := s.Index.Parsed.Load() - before; changed || n > 0 {
+		log.Printf("索引更新：解析 %d 个文件，共 %d 个会话，用时 %v", n, s.Index.Status().Sessions, time.Since(t0).Round(time.Millisecond))
+	}
+	return err
+}
+
+// Start 读取上次的索引缓存，然后在后台扫描，并每隔 interval 增量刷新一次。
+// 只有新增或变化的文件会被重新解析。
+func (s *Server) Start(ctx context.Context, interval time.Duration) {
+	if err := s.Index.LoadCache(); err != nil {
+		log.Printf("读取索引缓存失败（将重新扫描）: %v", err)
+	} else if st := s.Index.Status(); st.Ready {
+		log.Printf("已载入索引缓存：%d 个会话", st.Sessions)
+	}
+	go func() {
+		t := time.NewTicker(interval)
+		defer t.Stop()
+		for {
+			if err := s.rescan(); err != nil {
+				log.Printf("扫描失败: %v", err)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			case <-s.wake:
+			}
+		}
+	}()
+}
+
+// kick 请求后台尽快重扫（不阻塞）。
+func (s *Server) kick() {
+	select {
+	case s.wake <- struct{}{}:
+	default:
+	}
+}
+
+// load 返回内存中的索引视图。force=true（界面上的「重新扫描」）会同步扫描一次；
+// 索引从未建立时也会同步建立（只发生在没有后台扫描的场景，例如测试）。
 func (s *Server) load(force bool) (*snapshot, store.File, error) {
 	st, err := store.Load(s.StatePath)
 	if err != nil {
 		return nil, st, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if !force && s.cache != nil && time.Since(s.cache.at) < 5*time.Second {
-		return s.cache, st, nil
-	}
-	sn := &snapshot{at: time.Now()}
-	for _, src := range st.Settings.Sources {
-		if !src.Enabled {
-			continue
+	if force || !s.Index.Status().Ready {
+		if _, err := s.Index.Scan(enabledSources(st)); err != nil {
+			return nil, st, err
 		}
-		info := srcInfo{Source: src, Errors: []model.ParseError{}}
-		a := adapterFor(src.Adapter)
-		if a == nil {
-			info.Errors = append(info.Errors, model.ParseError{File: src.Dir, Reason: "未知适配器 " + src.Adapter})
-		} else if ss, errs, err := adapter.ScanAll(a, src.Dir); err != nil {
-			info.Missing = true
-			info.Errors = append(info.Errors, model.ParseError{File: src.Dir, Reason: err.Error()})
-		} else {
-			info.Sessions, info.Files = len(ss), len(ss)+len(errs)
-			info.Errors = append(info.Errors, errs...)
-			sn.sessions = append(sn.sessions, ss...)
-			sn.errs = append(sn.errs, errs...)
-		}
-		sn.perSrc = append(sn.perSrc, info)
 	}
-	s.cache = sn
+	isn := s.Index.Snapshot()
+	// 切片一律非 nil：界面会直接遍历，JSON 里不能出现 null
+	sn := &snapshot{gen: isn.Gen, sessions: isn.Sessions, errs: append([]model.ParseError{}, isn.Errors...), byID: isn.ByID, perSrc: []srcInfo{}}
+	for _, info := range isn.Sources {
+		sn.perSrc = append(sn.perSrc, srcInfo{Source: store.Source{Adapter: info.Adapter, Dir: info.Dir, Enabled: true},
+			Files: info.Files, Sessions: info.Sessions, Errors: info.Errors, Missing: info.Missing})
+	}
 	return sn, st, nil
 }
 
@@ -113,6 +175,8 @@ func (s *Server) Handler() http.Handler {
 	api("/api/requirements", s.requirements)
 	api("/api/requirements/", s.requirement)
 	api("/api/turn", s.turn)
+	api("/api/status", s.status)
+	api("/api/session/", s.session)
 	api("/api/today", s.today)
 	api("/api/insights", s.insights)
 	api("/api/sources", s.sources)
@@ -151,14 +215,24 @@ func phaseSecs(m map[core.Phase]time.Duration) map[string]float64 {
 	return out
 }
 
+// aggregate 返回聚合后的需求。结果按「索引代数 + 状态文件内容」缓存，
+// 只有日志变化或设置 / 人工修正变化时才重新计算。
 func (s *Server) aggregate(force bool) ([]*core.Requirement, *snapshot, store.File, core.Config, error) {
 	sn, st, err := s.load(force)
 	if err != nil {
 		return nil, nil, st, core.Config{}, err
 	}
+	h := st.Hash()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.memo.ok && s.memo.gen == sn.gen && s.memo.stateHash == h {
+		return s.memo.reqs, sn, st, s.memo.cfg, nil
+	}
 	cfg := st.Settings.Config()
 	cfg.Overrides = &st.Overrides
-	return core.Aggregate(sn.sessions, cfg), sn, st, cfg, nil
+	reqs := core.Aggregate(sn.sessions, cfg)
+	s.memo.ok, s.memo.gen, s.memo.stateHash, s.memo.reqs, s.memo.cfg = true, sn.gen, h, reqs, cfg
+	return reqs, sn, st, cfg, nil
 }
 
 func validRange(r string) string {
@@ -303,7 +377,7 @@ func (s *Server) turn(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) today(w http.ResponseWriter, r *http.Request) {
-	reqs, _, _, cfg, err := s.aggregate(true)
+	reqs, _, _, cfg, err := s.aggregate(false)
 	if err != nil {
 		fail(w, 500, err)
 		return
@@ -481,9 +555,7 @@ func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
 			fail(w, 500, err)
 			return
 		}
-		s.mu.Lock()
-		s.cache = nil
-		s.mu.Unlock()
+		s.kick() // 数据源可能变了：后台增量重扫
 	}
 	writeJSON(w, st.Settings)
 }
@@ -636,4 +708,155 @@ func sameJSON(a, b []byte) bool {
 	xa, _ := json.Marshal(x)
 	ya, _ := json.Marshal(y)
 	return string(xa) == string(ya)
+}
+
+func (s *Server) status(w http.ResponseWriter, r *http.Request) {
+	st, _ := store.Load(s.StatePath)
+	dirs := []string{}
+	for _, src := range enabledSources(st) {
+		dirs = append(dirs, src.Dir)
+	}
+	writeJSON(w, map[string]any{"index": s.Index.Status(), "dirs": dirs})
+}
+
+// 对话里单个块的最大长度；超出部分截断并标注原长度（原文件不受影响）。
+const (
+	maxResult = 20000
+	maxBlock  = 200000
+)
+
+func clip(t string, n int) (string, int, bool) {
+	if len(t) <= n {
+		return t, len(t), false
+	}
+	cut := n
+	for cut > 0 && !utf8.RuneStart(t[cut]) {
+		cut--
+	}
+	return t[:cut], len(t), true
+}
+
+func prettyJSON(raw string) string {
+	var v any
+	if json.Unmarshal([]byte(raw), &v) != nil {
+		return raw
+	}
+	b, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return raw
+	}
+	return string(b)
+}
+
+// session: GET /api/session/<id> 返回会话元信息与逐轮计时；
+// GET /api/session/<id>/transcript 按需读取原文件，还原完整对话。
+func (s *Server) session(w http.ResponseWriter, r *http.Request) {
+	rest := strings.TrimPrefix(r.URL.Path, "/api/session/")
+	sid, sub, _ := strings.Cut(rest, "/")
+	if sub == "transcript" {
+		s.transcript(w, sid)
+		return
+	}
+	reqs, _, _, _, err := s.aggregate(false)
+	if err != nil {
+		fail(w, 500, err)
+		return
+	}
+	home, _ := os.UserHomeDir()
+	for _, q := range reqs {
+		for _, ss := range q.Sessions {
+			if ss.Session.ID != sid {
+				continue
+			}
+			x := ss.Session
+			type turn struct {
+				I      int       `json:"i"`
+				Start  time.Time `json:"start"`
+				AI     float64   `json:"ai"`
+				Wait   float64   `json:"wait"`
+				Idle   float64   `json:"idle"`
+				Phase  string    `json:"phase"`
+				Long   bool      `json:"long"`
+				Prompt string    `json:"prompt"`
+			}
+			turns := []turn{}
+			var ai, wait, idle time.Duration
+			for i, t := range ss.Turns {
+				p, _, _ := clip(t.Prompt, 120)
+				turns = append(turns, turn{i, t.Start, secs(t.AI), secs(t.Wait), secs(t.Idle), string(t.Phase), t.AI > core.LongTurn, p})
+				ai, wait, idle = ai+t.AI, wait+t.Wait, idle+t.Idle
+			}
+			var tin, tout int
+			models := []string{}
+			seenModel := map[string]bool{}
+			for _, e := range x.Events {
+				tin, tout = tin+e.TokIn, tout+e.TokOut
+				if e.Model != "" && !seenModel[e.Model] {
+					seenModel[e.Model] = true
+					models = append(models, e.Model)
+				}
+			}
+			writeJSON(w, map[string]any{"id": x.ID, "tool": x.Tool, "title": x.Title, "cwd": x.Cwd, "home": home, "branch": x.Branch, "file": x.File,
+				"precision": string(x.Precision), "start": x.StartedAt, "end": x.EndedAt, "req": map[string]string{"key": q.Key(), "name": q.Name},
+				"active": secs(ai + wait), "ai": secs(ai), "wait": secs(wait), "idle": secs(idle), "tokIn": tin, "tokOut": tout, "models": models, "turns": turns})
+			return
+		}
+	}
+	http.NotFound(w, r)
+}
+
+func (s *Server) transcript(w http.ResponseWriter, sid string) {
+	path, aid, ok := s.Index.File(sid)
+	if !ok {
+		fail(w, 404, fmt.Errorf("没有找到会话 %s", sid))
+		return
+	}
+	tr, ok := adapterFor(aid).(adapter.Transcriber)
+	if !ok {
+		fail(w, 501, fmt.Errorf("适配器 %s 暂不支持还原对话", aid))
+		return
+	}
+	msgs, err := tr.Transcript(path)
+	if err != nil {
+		fail(w, 500, fmt.Errorf("读取 %s 失败: %v", path, err))
+		return
+	}
+	type block struct {
+		Kind      string `json:"kind"`
+		Text      string `json:"text,omitempty"`
+		Name      string `json:"name,omitempty"`
+		Input     string `json:"input,omitempty"`
+		ToolID    string `json:"toolId,omitempty"`
+		IsError   bool   `json:"isError,omitempty"`
+		Truncated bool   `json:"truncated,omitempty"`
+		Len       int    `json:"len,omitempty"`
+	}
+	type msg struct {
+		T         time.Time `json:"t"`
+		Role      string    `json:"role"`
+		Sidechain bool      `json:"side,omitempty"`
+		Turn      int       `json:"turn"`
+		Model     string    `json:"model,omitempty"`
+		Blocks    []block   `json:"blocks"`
+	}
+	turns := core.TurnOf(msgs)
+	out := make([]msg, 0, len(msgs))
+	for i, m := range msgs {
+		x := msg{T: m.T, Role: m.Role, Sidechain: m.Sidechain, Turn: turns[i], Model: m.Model, Blocks: []block{}}
+		for _, b := range m.Blocks {
+			limit := maxBlock
+			if b.Kind == "tool_result" {
+				limit = maxResult
+			}
+			text, n, cut := clip(b.Text, limit)
+			in, _, _ := clip(prettyJSON(b.Input), maxResult)
+			bb := block{Kind: b.Kind, Text: text, Name: b.Name, Input: in, ToolID: b.ToolID, IsError: b.IsError, Truncated: cut}
+			if cut {
+				bb.Len = n
+			}
+			x.Blocks = append(x.Blocks, bb)
+		}
+		out = append(out, x)
+	}
+	writeJSON(w, map[string]any{"id": sid, "file": path, "messages": out})
 }

@@ -42,3 +42,25 @@ type ParseError struct {
 	File   string
 	Reason string
 }
+
+// Message 是对话还原用的一条消息（按需读取单个文件生成，不进索引）。
+// Role 与 Event 一致：user 为真实用户发言，tool_result 为工具回传，assistant 为 AI。
+type Message struct {
+	T         time.Time
+	Role      string
+	Sidechain bool // 子 agent 的消息，不参与分轮
+	Model     string
+	TokIn     int
+	TokOut    int
+	Blocks    []Block
+}
+
+// Block 是消息里的一个内容块。
+type Block struct {
+	Kind    string // text | thinking | tool_use | tool_result | image
+	Text    string // text / thinking 的正文；tool_result 的输出
+	Name    string // tool_use 的工具名
+	Input   string // tool_use 的参数（JSON）
+	ToolID  string // tool_use 的 id，或 tool_result 对应的 tool_use_id
+	IsError bool   // tool_result 是否报错
+}

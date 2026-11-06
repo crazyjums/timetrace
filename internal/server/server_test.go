@@ -16,7 +16,7 @@ import (
 func setup(t *testing.T) (*httptest.Server, string) {
 	t.Helper()
 	dir := t.TempDir()
-	data, _ := os.ReadFile("../adapter/claudecode/testdata/s1.jsonl")
+	data, _ := os.ReadFile("../adapter/claudecode/testdata/scan/s1.jsonl")
 	os.WriteFile(filepath.Join(dir, "s1.jsonl"), data, 0o600)
 	os.WriteFile(filepath.Join(dir, "bad.jsonl"), []byte("garbage\n"), 0o600)
 	state := filepath.Join(t.TempDir(), "state.json")
@@ -25,7 +25,7 @@ func setup(t *testing.T) (*httptest.Server, string) {
 	if err := store.Save(state, f); err != nil {
 		t.Fatal(err)
 	}
-	ts := httptest.NewServer(server.New(state).Handler())
+	ts := httptest.NewServer(server.New(state, "").Handler())
 	t.Cleanup(ts.Close)
 	return ts, state
 }
@@ -166,5 +166,55 @@ func TestNewEndpointsShape(t *testing.T) {
 	_, b = do(t, "GET", ts.URL+"/api/turn?sid=s1&i=1", "", nil)
 	if !strings.Contains(b, `"dur":5`) { // Write 工具耗时 5s
 		t.Errorf("工具耗时缺失: %s", b)
+	}
+}
+
+func TestSessionAndTranscript(t *testing.T) {
+	ts, _ := setup(t)
+	c, b := do(t, "GET", ts.URL+"/api/status", "", nil)
+	if c != 200 || !strings.Contains(b, `"dirs"`) {
+		t.Fatalf("status: %d %s", c, b)
+	}
+	c, b = do(t, "GET", ts.URL+"/api/session/s1", "", nil)
+	if c != 200 || !strings.Contains(b, `"turns":[`) || !strings.Contains(b, `"req":{`) {
+		t.Fatalf("session: %d %s", c, b)
+	}
+	c, b = do(t, "GET", ts.URL+"/api/session/s1/transcript", "", nil)
+	if c != 200 {
+		t.Fatalf("transcript: %d %s", c, b)
+	}
+	var tr struct {
+		Messages []struct {
+			Role   string
+			Turn   int
+			Blocks []struct{ Kind, Name string }
+		}
+	}
+	json.Unmarshal([]byte(b), &tr)
+	// s1：3 轮；子 agent 那行带标记保留；坏行跳过
+	last := tr.Messages[len(tr.Messages)-1]
+	if len(tr.Messages) < 6 || tr.Messages[0].Role != "user" || last.Turn != 2 {
+		t.Errorf("对话还原错误: %s", b)
+	}
+	if c, _ := do(t, "GET", ts.URL+"/api/session/nope/transcript", "", nil); c != 404 {
+		t.Errorf("不存在的会话应 404, got %d", c)
+	}
+}
+
+func TestNoParseErrorsIsEmptyArray(t *testing.T) {
+	dir := t.TempDir()
+	data, _ := os.ReadFile("../adapter/claudecode/testdata/scan/s1.jsonl")
+	os.WriteFile(filepath.Join(dir, "s1.jsonl"), data, 0o600)
+	state := filepath.Join(t.TempDir(), "state.json")
+	f := store.Default()
+	f.Settings.Sources = []store.Source{{Adapter: "claude-code", Dir: dir, Enabled: true}}
+	store.Save(state, f)
+	ts := httptest.NewServer(server.New(state, "").Handler())
+	defer ts.Close()
+	for _, path := range []string{"/api/requirements?range=all", "/api/sources"} {
+		_, b := do(t, "GET", ts.URL+path, "", nil)
+		if strings.Contains(b, `"parseErrors":null`) || strings.Contains(b, `"sources":null`) {
+			t.Errorf("%s 没有解析错误时应返回空数组: %s", path, b)
+		}
 	}
 }

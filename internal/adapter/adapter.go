@@ -11,6 +11,11 @@ type Adapter interface {
 	Parse(file string) (*model.Session, error)
 }
 
+// Transcriber 是可选能力：把单个会话还原成完整对话（用于会话详情页）。
+type Transcriber interface {
+	Transcript(file string) ([]model.Message, error)
+}
+
 // ScanAll 解析 root 下所有文件；单个文件失败只记入 errs。
 func ScanAll(a Adapter, root string) (sessions []*model.Session, errs []model.ParseError, err error) {
 	files, err := a.Discover(root)

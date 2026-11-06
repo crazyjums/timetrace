@@ -3,11 +3,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/crazyjums/timetrace/internal/server"
 	"github.com/crazyjums/timetrace/internal/store"
@@ -16,11 +20,23 @@ import (
 func main() {
 	port := flag.Int("port", 0, "端口，0 表示随机")
 	state := flag.String("state", store.DefaultPath(), "本机状态文件")
+	cache := flag.String("cache", defaultCache(), "索引缓存文件（可删除，删除后会重新扫描）")
+	interval := flag.Duration("interval", 10*time.Second, "增量刷新间隔")
 	flag.Parse()
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", *port))
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("LISTENING http://%s\n", ln.Addr())
-	log.Fatal(http.Serve(ln, server.New(*state).Handler()))
+	srv := server.New(*state, *cache)
+	srv.Start(context.Background(), *interval)
+	log.Fatal(http.Serve(ln, srv.Handler()))
+}
+
+func defaultCache() string {
+	d, err := os.UserCacheDir()
+	if err != nil {
+		d = os.TempDir()
+	}
+	return filepath.Join(d, "timetrace", "index.gob")
 }
