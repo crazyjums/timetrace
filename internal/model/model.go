@@ -14,7 +14,7 @@ const (
 type Event struct {
 	T         time.Time
 	Role      string   // "user" | "assistant" | "tool_result"
-	Text      string   // 仅 user 的真实 prompt 文本
+	Text      string   // user 的真实 prompt 文本；assistant 的文字回复（可为空）
 	Tools     []string // assistant 事件中调用的工具名
 	ToolInput []string // 与 Tools 对应的关键参数（命令/文件路径），可为空
 }

@@ -1,0 +1,32 @@
+/* 阶段色板 + 图案。深浅色用 light-dark()，跟随系统；html[data-theme] 可手动覆盖。
+ * 色相取自 Okabe-Ito 色盲友好色板，浅色下加深以满足图形对象 ≥3:1 对比度。
+ * 每个阶段同时有：颜色 + 填充图案 + 单字母标签（P R C F T O），不依赖颜色单独传达。 */
+:root {
+  color-scheme: light dark;
+  --c-plan:     light-dark(#2B73B8, #5BA4E3);
+  --c-research: light-dark(#1E9475, #46BE9C);
+  --c-code:     light-dark(#C98414, #E9AE4C);
+  --c-fix:      light-dark(#CF4B37, #EC7461);
+  --c-test:     light-dark(#A9569A, #D494C4);
+  --c-other:    light-dark(#7C8796, #8F9AAB);
+  --c-wait:     light-dark(#B59B1F, #D8C65A);
+  --pat:        light-dark(rgba(255,255,255,.34), rgba(0,0,0,.26));
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+
+.ph-plan     { background-color: var(--c-plan); }
+.ph-research { background-color: var(--c-research);
+  background-image: repeating-linear-gradient(45deg, var(--pat) 0 2px, transparent 2px 6px); }
+.ph-code     { background-color: var(--c-code);
+  background-image: radial-gradient(var(--pat) 1.2px, transparent 1.7px); background-size: 5px 5px; }
+.ph-fix      { background-color: var(--c-fix);
+  background-image: repeating-linear-gradient(45deg, var(--pat) 0 1.5px, transparent 1.5px 5px),
+                    repeating-linear-gradient(-45deg, var(--pat) 0 1.5px, transparent 1.5px 5px); }
+.ph-test     { background-color: var(--c-test);
+  background-image: repeating-linear-gradient(0deg, var(--pat) 0 2px, transparent 2px 5px); }
+.ph-other    { background-color: var(--c-other);
+  background-image: repeating-linear-gradient(90deg, var(--pat) 0 2px, transparent 2px 5px); }
+.ph-wait     { background-color: var(--c-wait);
+  background-image: conic-gradient(var(--pat) 25%, transparent 0 50%, var(--pat) 0 75%, transparent 0);
+  background-size: 6px 6px; }

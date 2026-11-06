@@ -132,12 +132,17 @@ func toEvent(l line, t time.Time) (model.Event, bool) {
 	}
 	if l.Type == "assistant" {
 		ev.Role = "assistant"
+		var texts []string
 		for _, b := range bs {
+			if b.Type == "text" && b.Text != "" {
+				texts = append(texts, b.Text)
+			}
 			if b.Type == "tool_use" {
 				ev.Tools = append(ev.Tools, b.Name)
 				ev.ToolInput = append(ev.ToolInput, keyArg(b.Input))
 			}
 		}
+		ev.Text = strings.Join(texts, "\n")
 		return ev, true
 	}
 	// user 事件：含 tool_result 的是工具回传，不是用户发言

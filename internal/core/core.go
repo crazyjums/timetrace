@@ -52,6 +52,15 @@ type Turn struct {
 	Phase  Phase
 	Prompt string
 	Tools  []string
+	Items  []Item // 对话抽屉：该轮的消息与工具调用，按时间顺序
+}
+
+// Item 是抽屉里的一行。Kind: user | llm（AI 文字回复）| tool | agent（子 agent）。
+type Item struct {
+	Kind string
+	T    time.Time
+	Text string // user/llm 为正文；tool/agent 为工具名
+	Arg  string // tool/agent 的关键参数
 }
 
 type SessionStats struct {
@@ -115,7 +124,7 @@ func BuildTurns(s *model.Session, cfg Config) []Turn {
 	var accs []*acc
 	for _, e := range s.Events {
 		if e.Role == "user" {
-			accs = append(accs, &acc{Turn: Turn{Start: e.T, Prompt: e.Text}, last: e.T})
+			accs = append(accs, &acc{Turn: Turn{Start: e.T, Prompt: e.Text, Items: []Item{{Kind: "user", T: e.T, Text: e.Text}}}, last: e.T})
 			continue
 		}
 		if len(accs) == 0 {
@@ -124,6 +133,20 @@ func BuildTurns(s *model.Session, cfg Config) []Turn {
 		a := accs[len(accs)-1]
 		if e.T.After(a.last) {
 			a.last = e.T
+		}
+		if e.Text != "" {
+			a.Items = append(a.Items, Item{Kind: "llm", T: e.T, Text: e.Text})
+		}
+		for i, n := range e.Tools {
+			k := "tool"
+			if n == "Task" || n == "Agent" {
+				k = "agent"
+			}
+			arg := ""
+			if i < len(e.ToolInput) {
+				arg = e.ToolInput[i]
+			}
+			a.Items = append(a.Items, Item{Kind: k, T: e.T, Text: n, Arg: arg})
 		}
 		a.Tools = append(a.Tools, e.Tools...)
 		a.inputs = append(a.inputs, e.ToolInput...)
