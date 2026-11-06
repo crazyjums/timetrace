@@ -1,0 +1,10 @@
+{"type":"ai-title","aiTitle":"加登录","sessionId":"s1"}
+{"type":"user","timestamp":"2026-01-01T10:00:00Z","cwd":"/w/app","sessionId":"s1","message":{"role":"user","content":"聊聊登录方案"}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:30Z","cwd":"/w/app","sessionId":"s1","message":{"role":"assistant","content":[{"type":"text","text":"方案如下"}]}}
+{"type":"user","timestamp":"2026-01-01T10:03:00Z","cwd":"/w/app","sessionId":"s1","message":{"role":"user","content":"实现它"}}
+{"type":"assistant","timestamp":"2026-01-01T10:03:20Z","cwd":"/w/app","sessionId":"s1","message":{"role":"assistant","content":[{"type":"tool_use","name":"Write","input":{"file_path":"a.go"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:03:25Z","cwd":"/w/app","sessionId":"s1","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"x","content":"ok"}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:03:40Z","cwd":"/w/app","sessionId":"s1","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"go test ./..."}}]}}
+{"type":"user","timestamp":"2026-01-01T10:30:00Z","cwd":"/w/app","sessionId":"s1","message":{"role":"user","content":"再看看"}}
+{"type":"assistant","timestamp":"2026-01-01T10:30:10Z","cwd":"/w/app","sessionId":"s1","isSidechain":true,"message":{"role":"assistant","content":[{"type":"text","text":"sub"}]}}
+not json
