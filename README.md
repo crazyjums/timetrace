@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://github.com/crazyjums/timetrace/actions/workflows/ci-release.yml"><img alt="CI" src="https://github.com/crazyjums/timetrace/actions/workflows/ci-release.yml/badge.svg?branch=master"></a>
   <a href="https://github.com/crazyjums/timetrace/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/crazyjums/timetrace?display_name=tag"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="Go" src="https://img.shields.io/github/go-mod/go-version/crazyjums/timetrace">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey">
   <img alt="Local first" src="https://img.shields.io/badge/data-100%25%20local-2ea44f">
@@ -258,4 +259,4 @@ go test -race ./...
 
 ## 许可证
 
-尚未选择开源许可证(仓库中还没有 `LICENSE` 文件)。在确定之前,默认保留所有权利。
+[MIT](LICENSE) © 2026 crazyjums
