@@ -51,12 +51,11 @@ const post = (path, body, method = "POST") => api(path, { method, body: JSON.str
 
 /* 阶段块：颜色 + 纹理 + 字母 + 图标四重编码。宽 <6px 去纹理；≥20px 显示字母。 */
 const seg = (p, style, tip = "") => `<div class="seg ph-${PH[p].c}" style="${style}" title="${esc(PH[p].n + " " + p + tip)}"><span class="l">${p}</span></div>`;
+// 先统一读宽度、再统一改 class，避免每个块都触发一次强制重排（行数多时差别很大）。
 function layoutSegs(root) {
-  root.querySelectorAll(".seg").forEach(s => {
-    const w = s.getBoundingClientRect().width;
-    s.classList.toggle("thin", w < 6);
-    s.classList.toggle("wide", w >= 20);
-  });
+  const segs = [...root.querySelectorAll(".seg")];
+  const ws = segs.map(s => s.offsetWidth);
+  segs.forEach((s, i) => { s.classList.toggle("thin", ws[i] < 6); s.classList.toggle("wide", ws[i] >= 20); });
 }
 /* 阶段构成条：只含 AI 时间（等我单独列）。 */
 function bar(byPhase, cls = "") {
@@ -70,22 +69,47 @@ const main = $("#main"), dlg = $("#dlg");
 let timer;
 const state = { range: sessionStorage.getItem("range") || "week", irange: sessionStorage.getItem("irange") || "week", sel: null, hl: false };
 
-const routes = [[/^#\/r\/(.+)$/, detail], [/^#\/today$/, today], [/^#\/insights$/, insights], [/^#\/settings$/, settings], [/.*/, list]];
+const routes = [[/^#\/s\/([^/]+)(?:\/(\d+))?$/, sessionPage], [/^#\/r\/(.+)$/, detail], [/^#\/today$/, today], [/^#\/insights$/, insights], [/^#\/settings$/, settings], [/.*/, list]];
+let ready = false;
 async function route(quiet) {
-  clearInterval(timer);
+  clearInterval(timer); clearTimeout(timer);
+  if (!ready) {
+    const st = await api("/api/status").catch(() => null);
+    if (!st || !st.index.ready) return boot(st);
+    ready = true;
+  }
   const h = location.hash || "#/";
   document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("on", a.getAttribute("href") === h || (a.dataset.p === "list" && h.startsWith("#/r/")) || (a.dataset.p === "list" && h === "#/")));
   if (!quiet) main.innerHTML = '<div class="empty">加载中…</div>';
   for (const [re, fn] of routes) {
     const m = h.match(re);
     if (m) {
-      try { await fn(...m.slice(1).map(decodeURIComponent)); layoutSegs(main); }
+      try { await fn(...m.slice(1).map(x => x === undefined ? x : decodeURIComponent(x))); layoutSegs(main); idxLine(); }
       catch (e) { main.innerHTML = `<div class="warn" style="background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad-fg)">加载失败：${esc(e.message)}</div>`; }
       return;
     }
   }
 }
 addEventListener("hashchange", () => { state.sel = null; route(); });
+
+/* ---------- 首次建立索引 ---------- */
+function boot(st) {
+  const ix = st ? st.index : { done: 0, total: 0 };
+  const pct = ix.total ? Math.round(ix.done / ix.total * 100) : 0;
+  main.innerHTML = `<div class="boot card"><h1>正在建立索引</h1><div class="sub">首次使用会把会话日志全部扫描一遍并建立索引，之后打开各个页面都直接读索引。日志有新增或改动时，后台只增量处理变化的文件。</div>
+    <div class="prog"><div style="width:${pct}%"></div></div><div class="sub">${ix.total ? `已解析 ${ix.done} / ${ix.total} 个文件` : "正在查找日志文件…"}</div>
+    <h3 style="margin-top:16px">将读取的目录</h3><ul>${(st && st.dirs.length ? st.dirs : ["（还没有启用的数据源）"]).map(d => `<li><code>${esc(d)}</code></li>`).join("")}</ul>
+    <div class="sub">只读打开，不修改、不删除；数据不离开本机。</div></div>`;
+  timer = setTimeout(() => route(), 400);
+}
+async function idxLine() {
+  try {
+    const st = await api("/api/status");
+    const t = st.index.scanAt ? new Date(st.index.scanAt) : null;
+    $("#idx").textContent = `已索引 ${st.index.sessions} 个会话${t ? " · " + hm(t) + " 更新" : ""}`;
+  } catch { }
+}
+setInterval(idxLine, 15000);
 addEventListener("resize", () => layoutSegs(main));
 
 const RANGES = [["today", "今天"], ["week", "本周"], ["month", "本月"], ["all", "全部"]];
@@ -157,7 +181,7 @@ async function detail(key) {
     <div class="card"><h3>时间轴 <small>按会话，一格是一轮；空闲已折叠为虚线框</small></h3>`;
   for (const s of ss) {
     const coarse = s.precision !== "exact";
-    h += `<div class="tlrow"><div class="lab"><b>${esc(tn(s.tool))}</b><span>${when(s.start)} · ${coarse ? DASH : dur(s.active)}</span></div>`;
+    h += `<div class="tlrow"><div class="lab"><a href="#/s/${encodeURIComponent(s.id)}" title="查看这个会话的完整对话"><b>${esc(tn(s.tool))}</b><span>${when(s.start)} · ${coarse ? DASH : dur(s.active)}</span><div class="go">查看对话 →</div></a></div>`;
     h += coarse ? `<div class="bar placeholder">粗略档：仅显示起止跨度</div>` : timeline(s) ;
     h += `</div>`;
   }
@@ -181,9 +205,9 @@ async function detail(key) {
     $("#rs").onclick = async e => { e.preventDefault(); for (const x of ss) await post("/api/overrides", { op: "reset", sid: x.id }); dlg.close(); route(true); };
   };
 }
-function timeline(s) {
+function timeline(s, width) {
   if (!s.turns.length) return '<div class="dash">没有可展示的轮。</div>';
-  const W = Math.max(380, main.clientWidth - 360 - 190 - 80);
+  const W = width || Math.max(380, main.clientWidth - 360 - 190 - 80);
   const idleN = s.turns.filter(t => t.idle > 0).length, gaps = s.turns.length * 2;
   const tot = s.turns.reduce((a, t) => a + t.ai + t.wait, 0) || 1, avail = Math.max(60, W - idleN * 21 - gaps);
   let h = `<div class="tl" role="list">`;
@@ -217,7 +241,8 @@ function renderPanel(t) {
       return `<div class="span" tabindex="0" title="点击展开"><span class="ic">${icon(KIND[it.kind] || "tool")}</span><div><div class="t">${esc(title)}</div><div class="s">${esc(sub) || DASH}</div>${meta ? `<div class="s">${meta}</div>` : ""}</div><span class="d">${durS(it.dur)}</span></div>`;
     }).join("") +
     `<div class="phase-edit"><span>阶段改为：</span><select id="ps" aria-label="改阶段"><option value="">（自动判定）${t.phase} ${ph.n}</option>${PHASES.map(p => `<option value="${p}">${p} ${PH[p].n}</option>`).join("")}</select><span class="r">手动改会保留</span></div>
-    <div class="sub">工具执行与等待你批准的时间都计入 AI 时间，因为日志里分不出来。</div></div>`;
+    <div class="sub">工具执行与等待你批准的时间都计入 AI 时间，因为日志里分不出来。</div>
+    <p><a href="#/s/${encodeURIComponent(t.sid)}/${t.i}">查看完整对话 →</a></p></div>`;
   pn.querySelectorAll(".span").forEach(e => { e.onclick = () => e.classList.toggle("open"); e.onkeydown = ev => { if (ev.key === "Enter") e.classList.toggle("open"); }; });
   $("#ps").onchange = async e => { await post("/api/overrides", { op: "phase", sid: t.sid, turn: t.i, phase: e.target.value }); route(true); };
 }
@@ -300,7 +325,7 @@ async function insights() {
 
 /* ---------- 数据源与设置 ---------- */
 async function settings() {
-  const [st, src] = await Promise.all([api("/api/settings"), api("/api/sources?refresh=1")]);
+  const [st, src] = await Promise.all([api("/api/settings"), api("/api/sources")]);
   const status = t => !t.implemented ? `<b>暂不支持</b><div class="sub">适配器未实现</div>` : !t.configured ? `<b>未配置</b><div class="sub">添加目录后启用</div>` :
     t.missing ? `<b>目录不可用</b><div class="sub">检查路径</div>` : `<b>已发现</b><div class="sub">${t.sessions} 个会话${t.failed ? ` · ${t.failed} 个文件失败` : ""}</div>`;
   let h = `<div><h1>数据源与设置</h1><div class="sub">启动时自动发现本机已装工具的日志，只读，不改原文件。</div></div><div class="cols" style="grid-template-columns:1fr 340px"><div class="stack">
@@ -331,7 +356,7 @@ async function settings() {
   $("#le").onchange = async () => { if (await save()) route(true); };
   main.querySelectorAll("[data-en]").forEach(c => c.onchange = async () => { st.sources[+c.dataset.en].enabled = c.checked; if (await save()) route(true); });
   main.querySelectorAll("[data-dir]").forEach(a => a.onclick = e => { e.preventDefault(); const i = +a.dataset.dir; const v = prompt("日志目录", st.sources[i].dir); if (v && v.trim()) { st.sources[i].dir = v.trim(); save().then(() => route(true)); } });
-  const rs = $("#rs"); if (rs) rs.onclick = () => route();
+  const rs = $("#rs"); if (rs) rs.onclick = async () => { rs.disabled = true; rs.textContent = "扫描中…"; await api("/api/sources?refresh=1"); route(true); };
   $("#rules").onclick = () => modal(`<h3>阶段规则</h3><div class="sub">纯规则判定，按优先级；可在需求明细里对单轮人工覆盖。规则文件暂不支持自定义。</div><ol><li><b>T 测试</b>：Bash 命令匹配 go test / pytest / npm test / jest / cargo test 等</li><li><b>F 改代码</b>：有 Edit 类工具，或有 Write 且 prompt 含修复 / 重构类词</li><li><b>C 写代码</b>：仅有 Write</li><li><b>P 聊方案</b>：没有任何工具调用</li><li><b>R 调研</b>：只用 Read / Grep / Glob / WebFetch / WebSearch</li><li><b>O 其他</b>：其余</li></ol>`, async () => { }, "知道了");
   $("#ad").onclick = e => {
     e.preventDefault();
@@ -340,6 +365,115 @@ async function settings() {
     $("#dk").disabled = true;
     $("#ats").onclick = async () => { try { const r = await post("/api/sources/test", { adapter: $("#aa").value, dir: $("#ar").value.trim(), enabled: true }); $("#at").textContent = `识别到 ${r.sessions} 个会话、${r.turns} 轮；${r.failed} 个文件解析失败。`; $("#dk").disabled = r.sessions === 0; } catch (e) { $("#at").textContent = e.message; $("#dk").disabled = true; } };
   };
+}
+
+
+/* ---------- 会话详情：还原成聊天记录 ---------- */
+// 轻量 Markdown：先整体转义，再处理代码块、行内代码、粗体。不执行任何来自日志的 HTML。
+function md(text) {
+  const parts = String(text || "").split(/```/);
+  return parts.map((p, i) => {
+    if (i % 2 === 1) { const nl = p.indexOf("\n"); return `<pre>${esc(nl >= 0 && nl < 30 ? p.slice(nl + 1) : p)}</pre>`; }
+    return esc(p).replace(/`([^`\n]+)`/g, "<code>$1</code>").replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>");
+  }).join("");
+}
+const CHAT_BATCH = 15;
+const chatOpt = { tools: sessionStorage.getItem("c.tools") !== "0", side: sessionStorage.getItem("c.side") === "1" };
+
+async function sessionPage(sid, turnStr) {
+  const [d, tr] = await Promise.all([api("/api/session/" + encodeURIComponent(sid)), api("/api/session/" + encodeURIComponent(sid) + "/transcript")]);
+  const target = turnStr === undefined ? null : +turnStr;
+  const tok = d.tokIn || d.tokOut ? `入 ${d.tokIn.toLocaleString()} / 出 ${d.tokOut.toLocaleString()}（入不含缓存命中）` : DASH;
+  let h = `<div class="sub"><a href="#/">需求</a> &nbsp;/&nbsp; <a href="#/r/${encodeURIComponent(d.req.key)}">${esc(d.req.name)}</a> &nbsp;/&nbsp; 会话</div>
+  <div class="top"><h1>${esc(d.title || d.id)}</h1><span class="tag">${esc(tn(d.tool))}</span><span class="pill ${d.precision === "exact" ? "exact" : "coarse"}">${d.precision === "exact" ? "精确" : "粗略"}</span></div>
+  <div class="sub">${esc(shortPath(d.cwd, d.home))}${d.branch ? " · " + esc(d.branch) : ""} · ${when(d.start)} 至 ${when(d.end)} · 模型 ${d.models.length ? d.models.map(esc).join("、") : DASH} · token ${tok}</div>
+  <div class="cards">
+    <div class="metric"><div class="t">活跃时间</div><div class="v">${dur(d.active)}</div><div class="d">AI + 等我</div></div>
+    <div class="metric"><div class="t">AI 工作</div><div class="v">${dur(d.ai)}</div><div class="d">含工具与子 agent</div></div>
+    <div class="metric"><div class="t">等我</div><div class="v">${dur(d.wait)}</div><div class="d">空闲 ${dur(d.idle)} 不计入</div></div>
+    <div class="metric"><div class="t">轮数</div><div class="v">${d.turns.length}</div><div class="d">${tr.messages.length} 条消息</div></div></div>
+  <div class="card"><h3>时间轴 <small>一格是一轮，点一下跳到对应位置</small></h3>${timeline({ id: d.id, turns: d.turns }, Math.max(380, main.clientWidth - 90))}</div>
+  <div class="chatbar"><label><input type="checkbox" id="ct" ${chatOpt.tools ? "checked" : ""}>显示工具调用</label><label><input type="checkbox" id="cs" ${chatOpt.side ? "checked" : ""}>显示子 agent 消息</label>
+    <span class="grow"></span><span title="${esc(tr.file)}">原始日志：<code>${esc(shortPath(tr.file, d.home))}</code>（只读）</span></div>
+  <div class="chat" id="chat"></div><div class="more" id="more"></div>`;
+  main.innerHTML = h;
+
+  // 工具结果按 tool_use id 配对，放进对应的工具卡片
+  const results = {};
+  for (const m of tr.messages) if (m.role === "tool_result") for (const b of m.blocks) if (b.toolId) results[b.toolId] = { b, t: m.t };
+  const groups = new Map();
+  for (const m of tr.messages) { if (!groups.has(m.turn)) groups.set(m.turn, []); groups.get(m.turn).push(m); }
+  const order = [...groups.keys()].sort((a, b) => a - b);
+  const turnMeta = Object.fromEntries(d.turns.map(t => [t.i, t]));
+  let rendered = 0;
+  const chat = $("#chat"), more = $("#more");
+
+  const renderTurn = k => {
+    let out = "";
+    const t = turnMeta[k];
+    if (t) {
+      const p = PH[t.phase];
+      out += `<div class="tsep" id="turn-${k}"><span>第 ${k + 1} 轮</span><span class="badge-ph ph-${p.c}">${t.phase} ${p.n}</span><span>${hm(new Date(t.start))} · AI ${durS(t.ai)}${t.wait ? " · 等我 " + durS(t.wait) : ""}${t.idle ? " · 之后空闲 " + plain(dur(t.idle)) : ""}</span></div>`;
+    } else if (k < 0) out += `<div class="tsep"><span>第一条用户消息之前</span></div>`;
+    let side = "";
+    const flushSide = () => { if (side) { out += `<div class="side" ${chatOpt.side ? "" : "hidden"}><div class="lbl">子 agent</div>${side}</div>`; side = ""; } };
+    for (const m of groups.get(k)) {
+      const html = renderMsg(m);
+      if (!html) continue;
+      if (m.side) side += html; else { flushSide(); out += html; }
+    }
+    flushSide();
+    return out;
+  };
+  const renderMsg = m => {
+    if (m.role === "tool_result") { // 已配对的结果在工具卡片里显示；未配对的单独显示
+      return m.blocks.filter(b => !b.toolId || !hasUse(b.toolId)).map(b => toolCard({ name: "工具结果", input: "" }, { b, t: m.t }, m.t)).join("");
+    }
+    const user = m.role === "user";
+    let text = "", out = "";
+    for (const b of m.blocks) {
+      if (b.kind === "text" && b.text) text += (text ? "\n\n" : "") + b.text;
+      else if (b.kind === "image") text += (text ? "\n" : "") + "[图片]";
+      else if (b.kind === "thinking" && b.text) out += `<details class="think"><summary>思考</summary><div class="md">${md(b.text)}</div></details>`; // 日志里思考正文为空时不显示
+      else if (b.kind === "tool_use") out += toolCard(b, results[b.toolId], m.t);
+    }
+    const bubble = text ? `<div class="msg ${user ? "user" : "ai"}"><div class="mt">${user ? "我" : "AI" + (m.model ? " · " + esc(m.model) : "")} · ${hm(new Date(m.t))}</div><div class="md">${md(text)}</div></div>` : "";
+    return user ? bubble : bubble + out;
+  };
+  const uses = new Set();
+  for (const m of tr.messages) for (const b of m.blocks) if (b.kind === "tool_use" && b.toolId) uses.add(b.toolId);
+  const hasUse = id => uses.has(id);
+  const toolCard = (b, r, t0) => {
+    const res = r ? r.b : null, err = res && res.isError;
+    const secs = r ? Math.max(0, (new Date(r.t) - new Date(t0)) / 1000) : null;
+    let arg = "";
+    try { const o = JSON.parse(b.input || "{}"); arg = o.command || o.file_path || o.path || o.pattern || o.url || o.query || o.description || ""; } catch { }
+    const kind = b.name === "Task" || b.name === "Agent" ? "agent" : "tool";
+    return `<details class="tool${err ? " err" : ""}" ${chatOpt.tools ? "" : "hidden"}><summary>${icon(kind)}<b>${esc(b.name)}</b><span class="a">${esc(arg)}</span>${err ? '<span class="pill" style="background:var(--bad-bg);color:var(--bad-fg)">出错</span>' : ""}<span class="d">${secs == null ? DASH : durS(secs)}</span></summary>
+      <div class="body">${b.input && b.input !== "{}" ? `<div class="k">参数</div><pre class="out">${esc(b.input)}</pre>` : ""}
+      <div class="k">输出</div>${res ? `<pre class="out">${esc(res.text) || "（空）"}</pre>${res.truncated ? `<div class="trunc">已截断，原文 ${res.len.toLocaleString()} 字符，完整内容见原始日志。</div>` : ""}` : `<div class="dash">没有对应的输出记录</div>`}</div></details>`;
+  };
+  const renderUpTo = n => {
+    let html = "";
+    while (rendered < order.length && rendered < n) html += renderTurn(order[rendered++]);
+    if (html) chat.insertAdjacentHTML("beforeend", html);
+    more.textContent = rendered < order.length ? `已显示 ${rendered} / ${order.length} 段，继续向下滚动加载…` : (order.length ? "— 会话结束 —" : "这个会话没有可显示的消息。");
+  };
+  const jump = k => {
+    const idx = order.indexOf(k);
+    if (idx >= 0) renderUpTo(idx + CHAT_BATCH);
+    const el = $(`#turn-${k}`);
+    if (el) { main.querySelectorAll(".tsep.hl").forEach(x => x.classList.remove("hl")); el.classList.add("hl"); el.scrollIntoView({ block: "start" }); }
+    main.querySelectorAll(".blk.sel").forEach(x => x.classList.remove("sel"));
+    const b = $(`.blk[data-i="${k}"]`); if (b) b.classList.add("sel");
+  };
+  renderUpTo(CHAT_BATCH);
+  const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) renderUpTo(rendered + CHAT_BATCH); }, { rootMargin: "800px" });
+  io.observe(more);
+  main.querySelectorAll(".blk").forEach(b => b.onclick = () => { history.replaceState(null, "", `#/s/${encodeURIComponent(sid)}/${b.dataset.i}`); jump(+b.dataset.i); });
+  $("#ct").onchange = e => { chatOpt.tools = e.target.checked; sessionStorage.setItem("c.tools", chatOpt.tools ? "1" : "0"); chat.querySelectorAll(".tool").forEach(x => x.hidden = !chatOpt.tools); };
+  $("#cs").onchange = e => { chatOpt.side = e.target.checked; sessionStorage.setItem("c.side", chatOpt.side ? "1" : "0"); chat.querySelectorAll(".side").forEach(x => x.hidden = !chatOpt.side); };
+  if (target != null) requestAnimationFrame(() => jump(target));
 }
 
 /* ---------- 主题 ---------- */

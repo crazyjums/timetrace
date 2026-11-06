@@ -4,6 +4,7 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"time"
@@ -80,6 +81,14 @@ func Save(path string, f File) error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// Hash 是设置与人工修正的指纹，用来判断聚合结果是否需要重算。
+func (f File) Hash() uint64 {
+	b, _ := json.Marshal(f)
+	h := fnv.New64a()
+	h.Write(b)
+	return h.Sum64()
 }
 
 func (s Settings) Config() core.Config {

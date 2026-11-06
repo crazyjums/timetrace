@@ -1,0 +1,10 @@
+{"type":"ai-title","aiTitle":"拆行与对话","sessionId":"sp"}
+{"type":"user","timestamp":"2026-01-02T09:00:00Z","cwd":"/w/x","sessionId":"sp","message":{"role":"user","content":"帮我看下"}}
+{"type":"user","timestamp":"2026-01-02T09:00:01Z","cwd":"/w/x","sessionId":"sp","isMeta":true,"message":{"role":"user","content":"<local-command-caveat>系统注入</local-command-caveat>"}}
+{"type":"assistant","timestamp":"2026-01-02T09:00:05Z","cwd":"/w/x","sessionId":"sp","message":{"id":"m1","model":"claude-x","usage":{"input_tokens":100,"output_tokens":40},"content":[{"type":"thinking","thinking":""}]}}
+{"type":"assistant","timestamp":"2026-01-02T09:00:06Z","cwd":"/w/x","sessionId":"sp","message":{"id":"m1","model":"claude-x","usage":{"input_tokens":100,"output_tokens":40},"content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"a.go"}}]}}
+{"type":"user","timestamp":"2026-01-02T09:00:08Z","cwd":"/w/x","sessionId":"sp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":[{"type":"text","text":"package a"},{"type":"image"}]}]}}
+{"type":"assistant","timestamp":"2026-01-02T09:00:09Z","cwd":"/w/x","sessionId":"sp","isSidechain":true,"message":{"id":"s1","content":[{"type":"text","text":"子 agent 在干活"}]}}
+{"type":"assistant","timestamp":"2026-01-02T09:00:12Z","cwd":"/w/x","sessionId":"sp","message":{"id":"m2","model":"claude-x","usage":{"input_tokens":200,"output_tokens":10},"content":[{"type":"text","text":"看完了"}]}}
+{"type":"user","timestamp":"2026-01-02T09:01:00Z","cwd":"/w/x","sessionId":"sp","message":{"role":"user","content":[{"type":"image"},{"type":"text","text":"再看这张图"}]}}
+{"type":"assistant","timestamp":"2026-01-02T09:01:03Z","cwd":"/w/x","sessionId":"sp","message":{"id":"m3","content":[{"type":"text","text":"好的"}]}}

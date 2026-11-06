@@ -10,7 +10,7 @@ import (
 	"github.com/crazyjums/timetrace/internal/model"
 )
 
-const dir = "../adapter/claudecode/testdata"
+const dir = "../adapter/claudecode/testdata/scan"
 
 func load(t *testing.T) []*model.Session {
 	ss, errs, err := adapter.ScanAll(claudecode.Adapter{}, dir)

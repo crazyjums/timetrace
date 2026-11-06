@@ -174,3 +174,40 @@ pre.json { background: var(--bg); border: 1px solid var(--line); border-radius: 
 
 .tl .ph-wait .l, .track .ph-wait .l { display: none !important; }
 .track .b { min-width: 4px; }
+/* 首次索引 */
+.boot { max-width: 560px; margin: 12vh auto 0; }
+.boot h1 { margin-bottom: 6px; }
+.prog { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; margin: 14px 0 6px; }
+.prog div { height: 100%; background: var(--accent); transition: width .2s; }
+.boot ul { color: var(--mute); padding-left: 18px; } .boot code { color: var(--fg); }
+.idx { font-size: 11.5px; color: var(--mute); padding: 0 10px 8px; }
+/* 会话详情：对话 */
+.chatbar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--mute); }
+.chatbar label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.chat { display: flex; flex-direction: column; gap: 10px; }
+.tsep { display: flex; align-items: center; gap: 8px; margin: 14px 0 2px; font-size: 12px; color: var(--mute); scroll-margin-top: 16px; }
+.tsep::before, .tsep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.tsep.hl .badge-ph { outline: 2px solid var(--fg); outline-offset: 2px; }
+.msg { max-width: min(760px, 88%); border-radius: 12px; padding: 9px 13px; word-break: break-word; }
+.msg.user { align-self: flex-end; background: var(--navon-bg); border-bottom-right-radius: 4px; }
+.msg.ai { align-self: flex-start; background: var(--panel); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.msg .mt { font-size: 11.5px; color: var(--mute); margin-bottom: 3px; }
+.md { white-space: pre-wrap; line-height: 1.55; }
+.md pre, pre.out { white-space: pre; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin: 6px 0; font: 12px/1.45 ui-monospace, "SF Mono", Menlo, monospace; max-height: 420px; }
+.md code { background: var(--soft); padding: 0 4px; border-radius: 4px; color: var(--fg); }
+.tool { align-self: flex-start; width: min(760px, 88%); border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.tool > summary { list-style: none; cursor: pointer; display: flex; gap: 8px; align-items: center; padding: 7px 12px; font-size: 12.5px; }
+.tool > summary::-webkit-details-marker { display: none; }
+.tool > summary svg { width: 15px; height: 15px; color: var(--mute); flex: none; }
+.tool > summary .a { color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.tool > summary .d { color: var(--mute); font-variant-numeric: tabular-nums; }
+.tool.err { border-color: var(--bad-line); } .tool.err > summary b { color: var(--bad-fg); }
+.tool .body { padding: 0 12px 10px; } .tool .body .k { font-size: 11.5px; color: var(--mute); margin-top: 6px; }
+.think { align-self: flex-start; font-size: 12.5px; color: var(--mute); max-width: min(760px, 88%); }
+.think summary { cursor: pointer; }
+.side { align-self: stretch; border-left: 3px solid var(--c-agent, var(--line2)); padding-left: 12px; display: flex; flex-direction: column; gap: 8px; }
+.side > .lbl { font-size: 11.5px; color: var(--mute); }
+.more { text-align: center; color: var(--mute); padding: 16px; }
+.trunc { font-size: 11.5px; color: var(--mute); }
+.tlrow .lab a { color: inherit; text-decoration: none; } .tlrow .lab a:hover b { text-decoration: underline; }
+.tlrow .lab .go { font-size: 11.5px; color: var(--accent); }
