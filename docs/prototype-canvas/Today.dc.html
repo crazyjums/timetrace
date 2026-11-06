@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>今日</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;color:#1b2430}
+*{box-sizing:border-box}
+.app{width:1280px;height:800px;display:flex;background:#f6f7f9;font-size:13px;line-height:1.45}
+.side{width:196px;background:#fff;border-right:1px solid #dfe3e8;padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex:none}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:15px;padding:0 8px 16px}
+.brand i{width:22px;height:22px;border-radius:6px;background:#1f5fae;display:block;position:relative}
+.brand i:after{content:"";position:absolute;left:5px;right:5px;top:10px;height:2px;background:#fff;box-shadow:0 -4px 0 0 #fff,0 4px 0 0 #fff}
+.nv{display:block;padding:8px 10px;border-radius:7px;color:#566170;text-decoration:none;font-size:13px}
+.nv.on{background:#e8f0fa;color:#174a8a;font-weight:600}
+.sp{flex:1}
+.priv{font-size:11.5px;color:#566170;padding:10px;border-top:1px solid #dfe3e8;line-height:1.5}
+.main{flex:1;min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.top{display:flex;align-items:baseline;gap:12px}
+.top h1{margin:0;font-size:20px;font-weight:650}
+.top .d{color:#566170;font-size:12.5px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.kpi{background:#fff;border:1px solid #dfe3e8;border-radius:10px;padding:10px 14px}
+.kpi .l{color:#566170;font-size:12px}
+.kpi .v{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .n{color:#566170;font-size:11.5px}
+.card{background:#fff;border:1px solid #dfe3e8;border-radius:10px;padding:14px 16px}
+.card h2{margin:0 0 10px;font-size:13.5px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h2 span{font-weight:400;color:#566170;font-size:12px}
+.tl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px}
+.axis{position:relative;height:18px;color:#566170;font-size:11.5px}
+.axis span{position:absolute;transform:translateX(-50%);font-variant-numeric:tabular-nums}
+.lane{display:contents}
+.lb{align-self:center;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb small{display:block;font-weight:400;color:#566170;font-size:11.5px}
+.trk{position:relative;height:30px;margin:5px 0;background:repeating-linear-gradient(90deg,#f1f4f7 0 1px,transparent 1px 8.3333%);border-radius:4px}
+.seg{position:absolute;top:4px;height:22px;border-radius:2px}
+.seg.w{top:9px;height:12px}
+.now{position:absolute;top:18px;bottom:0;width:0;border-left:2px solid #1b2430}
+.nowlb{position:absolute;transform:translateX(-50%);top:0;background:#1b2430;color:#fff;border-radius:4px;padding:0 6px;font-size:11px;line-height:17px;white-space:nowrap}
+.mid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:12px;flex:1;min-height:0}
+.rr{display:grid;grid-template-columns:minmax(0,1.5fr) 80px 70px minmax(0,1.6fr);gap:12px;align-items:center;padding:9px 0;border-top:1px solid #edf0f3;font-size:12.5px}
+.rr.h{border-top:0;color:#566170;font-size:12px;padding-top:0}
+.rr b{font-weight:650}
+.rr .t{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.bd{display:inline-flex;align-items:center;gap:5px;border-radius:5px;padding:1px 7px;font-size:11.5px;font-weight:600}
+.bd svg{width:12px;height:12px}
+.bd-w{background:#fbf3d0;color:#5f4f06}
+.bd-r{background:#e5f4ee;color:#0f5a43}
+.bd-d{background:#eceef1;color:#3b4552}
+.note{color:#566170;font-size:12px;line-height:1.6}
+.note p{margin:0 0 8px}
+.lg{display:flex;gap:12px;flex-wrap:wrap;color:#566170;font-size:12px;margin-top:8px}
+.lg span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.wt{background-color:#B59B1F;background-image:conic-gradient(rgba(255,255,255,.34) 25%,transparent 0 50%,rgba(255,255,255,.34) 0 75%,transparent 0);background-size:6px 6px}
+.ph-plan{background-color:#2B73B8}
+.ph-research{background-color:#1E9475;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 2px,transparent 2px 6px)}
+.ph-code{background-color:#C98414;background-image:radial-gradient(rgba(255,255,255,.34) 1.2px,transparent 1.7px);background-size:5px 5px}
+.ph-fix{background-color:#CF4B37;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px)}
+.ph-test{background-color:#A9569A;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+.ph-other{background-color:#7C8796;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+</style>
+</helmet>
+<div class="app">
+  <nav class="side" aria-label="主导航">
+    <div class="brand"><i aria-hidden="true"></i>时迹</div>
+    <a class="nv" href="Main.dc.html">需求</a>
+    <a class="nv on" href="Today.dc.html">今日</a>
+    <a class="nv" href="Insights.dc.html">洞察</a>
+    <a class="nv" href="Sources.dc.html">数据源与设置</a>
+    <div class="sp"></div>
+    <div class="priv">数据只在本机处理，不上传。大模型建议默认关闭。</div>
+  </nav>
+  <main class="main">
+    <div class="top"><h1>今日</h1><span class="d">11 月 6 日 周五 · 现在 14:20</span></div>
+    <div class="kpis">
+      <div class="kpi"><div class="l">活跃时间</div><div class="v">4h 23m</div><div class="n">AI 工作 + 等我</div></div>
+      <div class="kpi"><div class="l">AI 工作</div><div class="v">3h 47m</div><div class="n">含工具与子 agent</div></div>
+      <div class="kpi"><div class="l">等我</div><div class="v">36m</div><div class="n">占活跃时间 14%</div></div>
+      <div class="kpi"><div class="l">空闲，不计入</div><div class="v">2h 05m</div><div class="n">间隔超过 10 分钟的部分</div></div>
+    </div>
+    <div class="card">
+      <h2>今天的时间线 <span>按真实时钟；空白是空闲或没在用</span></h2>
+      <div class="tl">
+        <div></div>
+        <div class="axis">
+          <sc-for list="{{ticks}}" as="k" hint-placeholder-count="7"><span style="left: {{k.l}}%">{{k.t}}</span></sc-for>
+          <span class="nowlb" style="left: {{nowL}}%">现在</span>
+        </div>
+        <sc-for list="{{lanes}}" as="ln" hint-placeholder-count="3">
+          <div class="lane">
+            <div class="lb">{{ln.name}}<small>{{ln.tool}}</small></div>
+            <div class="trk">
+              <sc-for list="{{ln.segs}}" as="s" hint-placeholder-count="8"><div class="seg {{s.cls}}" style="left: {{s.l}}%; width: {{s.w}}%" title="{{s.title}}"></div></sc-for>
+              <div class="now" style="left: {{nowL}}%"></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div class="lg">
+        <span><i class="sw ph-plan"></i>P 聊方案</span><span><i class="sw ph-research"></i>R 调研</span><span><i class="sw ph-code"></i>C 写代码</span><span><i class="sw ph-fix"></i>F 改代码</span><span><i class="sw ph-test"></i>T 测试</span><span><i class="sw ph-other"></i>O 其他</span><span><i class="sw wt"></i>W 等我（细条）</span>
+      </div>
+    </div>
+    <div class="mid">
+      <div class="card">
+        <h2>今天动过的需求</h2>
+        <div class="rr h"><div>需求</div><div>工具</div><div style="text-align:right">活跃</div><div>状态</div></div>
+        <sc-for list="{{reqs}}" as="r" hint-placeholder-count="3">
+          <div class="rr">
+            <b>{{r.n}}</b><div>{{r.tool}}</div><div class="t">{{r.t}}</div>
+            <div><span class="bd {{r.bc}}">{{r.s}}</span></div>
+          </div>
+        </sc-for>
+      </div>
+      <div class="card note">
+        <h2>怎么算的</h2>
+        <p><b>等我</b>：AI 做完一轮后，10 分钟内你还没回，这段算等我，计入活跃。</p>
+        <p><b>空闲</b>：超过 10 分钟没动静，视为你不在，不计入。阈值可在设置里改，改完立即重算。</p>
+        <p><b>进行中的一轮</b>：计到现在，轮结束后以实际结束时间为准。</p>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T0 = 720;
+    const names = { plan: '聊方案', research: '调研', code: '写代码', fix: '改代码', test: '测试', other: '其他', wait: '等我' };
+    const build = (start, a) => { let p = start; const out = []; a.forEach(([k, m, gap]) => { if (k === 'gap') { p += m; return; } out.push({ cls: k === 'wait' ? 'wt w' : 'ph-' + k, l: +(p * 100 / T0).toFixed(3), w: +(m * 100 / T0).toFixed(3), title: names[k] + ' ' + m + ' 分钟' }); p += m; }); return out; };
+    const lanes = [
+      { name: '登录接口改造', tool: 'cc', segs: build(80, [['plan', 10], ['wait', 3], ['research', 8], ['code', 25], ['wait', 4], ['fix', 20], ['test', 10], ['wait', 3], ['gap', 137], ['fix', 22], ['wait', 5], ['test', 12], ['wait', 3], ['fix', 18], ['test', 14], ['wait', 6]]) },
+      { name: '订单导出超时排查', tool: 'cc', segs: build(190, [['research', 25], ['wait', 4], ['fix', 18], ['wait', 3]]) },
+      { name: '日志解析器适配', tool: 'omp', segs: build(330, [['plan', 8], ['wait', 2], ['code', 22], ['wait', 3], ['code', 15]]) }
+    ];
+    const ticks = [0, 2, 4, 6, 8, 10, 12].map((h) => ({ l: +(h * 60 * 100 / T0).toFixed(3), t: String(8 + h).padStart(2, '0') + ':00' }));
+    const reqs = [
+      { n: '登录接口改造', tool: 'cc', t: '2h 43m', s: '等我中 · 6 分钟', bc: 'bd-w' },
+      { n: '订单导出超时排查', tool: 'cc', t: '50m', s: '已结束 12:00', bc: 'bd-d' },
+      { n: '日志解析器适配', tool: 'omp', t: '50m', s: '运行中 · 计到现在', bc: 'bd-r' }
+    ];
+    return { lanes, ticks, reqs, nowL: +(380 * 100 / T0).toFixed(3) };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>时迹 · 图标规格</title>
+<link rel="stylesheet" href="tokens.css">
+<style>
+:root{--bg:light-dark(#faf9f7,#17181b);--panel:light-dark(#fff,#1e2024);--ink:light-dark(#26272b,#e7e8ea);--ink2:light-dark(#74767d,#9a9ca3);--line:light-dark(#e3e0db,#34363c);
+ font:14px/1.55 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink)}
+main{max-width:1000px;margin:0 auto;padding:32px 28px 64px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:14px;margin:30px 0 10px;color:var(--ink2);text-transform:none}
+p{color:var(--ink2);margin:4px 0 10px;max-width:70ch}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 10px 10px;text-align:center}
+.card svg{display:block;margin:0 auto 8px}
+.card b{display:block;font-weight:500}.card code{font-size:11px;color:var(--ink2)}
+.big svg{width:56px;height:56px}
+.row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.chip{display:inline-grid;place-items:center;border-radius:6px;color:#fff}
+.chip.dk{color:#111}
+.sz{display:inline-flex;gap:14px;align-items:flex-end}
+.sz span{display:grid;gap:4px;justify-items:center;font-size:11px;color:var(--ink2)}
+.legend{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;font-size:13px}
+.legend div{display:flex;align-items:center;gap:8px}
+.legend .sw{width:22px;height:16px;border-radius:3px}
+.grid24{position:relative;width:240px;height:240px;background:
+ linear-gradient(var(--line) 1px,transparent 1px) 0 0/10px 10px,
+ linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/10px 10px;border:1px solid var(--line);border-radius:6px}
+.grid24 svg{position:absolute;inset:0;width:240px;height:240px;color:var(--ink)}
+.grid24 i{position:absolute;inset:20px;border:1px dashed var(--ink2);opacity:.6}
+ul{color:var(--ink2);padding-left:18px;margin:6px 0}
+li{margin:3px 0}
+</style></head><body><main>
+<h1>阶段图标集</h1>
+<p>6 个阶段 + 「等我」「空闲」+ 过程视图的 4 种 span。图标是阶段区分的<b>第三条通道</b>（颜色、填充图案之外），所以每个图标的轮廓都互不相同；单色、currentColor，可放在任何阶段色块上或纯文字旁。</p>
+<h2>阶段（P R C F T O）</h2><div class="grid big" id="g1"></div>
+<h2>状态（不是阶段，不占用阶段色）</h2><div class="grid big" id="g2"></div>
+<h2>过程视图 span 种类</h2><div class="grid big" id="g3"></div>
+<h2>在阶段色块上（浅 / 深色自动跟随系统）</h2>
+<div class="row" id="onchip"></div>
+<h2>最小尺寸检查：12 / 14 / 16 / 20 / 24 px</h2>
+<div class="row" id="sizes"></div>
+<h2>图例中的样子</h2>
+<div class="row"><div class="legend" id="lg" style="width:100%"></div></div>
+<h2>构造规范</h2>
+<div class="row" style="align-items:flex-start;gap:28px">
+ <div class="grid24" id="gridv"><i></i></div>
+ <ul>
+  <li>画布 24×24，内容区 20×20（外留 2px 呼吸边）。</li>
+  <li>描边 1.75，圆头圆角；实心点只用于「…」类标记，半径 1.15。</li>
+  <li>单色，<code>stroke="currentColor"</code>；放在色块上时用白（浅色）或近黑（深色）。</li>
+  <li>阶段间轮廓刻意拉开：气泡 / 放大镜 / 尖括号 / 加减方块 / 烧瓶 / 圆点环。「写代码」与「改代码」是最易混的一对，所以前者是开放的 <code>&lt;/&gt;</code>，后者是封闭的 ± 方块。</li>
+  <li>图标不单独承载含义：始终配文字标签或 tooltip（无障碍），颜色与图案仍保留。</li>
+ </ul>
+</div>
+<script src="icons.js"></script>
+<script>
+const svg=(k,s=24,sw=1.75)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k].inner}</svg>`;
+const card=(k,code)=>`<div class="card">${svg(k)}<b>${ICONS[k].name}</b><code>${code||k}</code></div>`;
+g1.innerHTML=['plan','research','code','fix','test','other'].map((k,i)=>card(k,'PRCFTO'[i]+' · '+k)).join('');
+g2.innerHTML=['wait','idle'].map((k,i)=>card(k,['W · wait','– · idle'][i])).join('');
+g3.innerHTML=['llm','tool','perm','agent'].map((k,i)=>card(k,'LTWA'[i]+' · '+k)).join('');
+const ph=['plan','research','code','fix','test','other','wait'];
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+onchip.innerHTML=ph.map(k=>`<span class="chip ph-${k} ${dark?'dk':''}" style="width:44px;height:44px">${svg(k,26)}</span>`).join('')+'<span class="chip" style="width:44px;height:44px;border:1px dashed var(--ink2);color:var(--ink2)">'+svg('idle',26)+'</span>';
+sizes.innerHTML=['plan','research','code','fix','test','other','wait'].map(k=>`<div class="sz">${[12,14,16,20,24].map(s=>`<span>${svg(k,s)}${s}</span>`).join('')}</div>`).join('<span style="width:1px;height:40px;background:var(--line)"></span>');
+lg.innerHTML=[...ph,'idle'].map(k=>`<div><i class="sw ${k==='idle'?'':'ph-'+k}" ${k==='idle'?'style="border:1px dashed var(--ink2)"':''}></i>${svg(k,15)}<span>${ICONS[k].name}</span></div>`).join('');
+gridv.insertAdjacentHTML('beforeend',svg('fix',240,.8).replace('stroke-width="0.8"','stroke-width="0.8"'));
+</script>
+</main></body></html>

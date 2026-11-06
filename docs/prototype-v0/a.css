@@ -1,0 +1,51 @@
+/* 方向 A：仪器台 — 高密度、等宽、直角、细线；示波器 / profiler 气质 */
+:root {
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Noto Sans Mono CJK SC", "PingFang SC", "Microsoft YaHei", monospace;
+  --font: var(--mono);
+  --fs: 12.5px;
+  --bg:      light-dark(#f2f3f5, #0d0f12);
+  --panel:   light-dark(#ffffff, #14171c);
+  --side:    light-dark(#eceef1, #101317);
+  --chrome:  light-dark(#e6e9ed, #181c22);
+  --ink:     light-dark(#15181d, #dfe4ea);
+  --ink2:    light-dark(#59616d, #8d97a5);
+  --line:    light-dark(#c9cfd7, #2a3039);
+  --line-soft: light-dark(#e1e5ea, #1f242c);
+  --hover:   light-dark(#e8ebef, #1b2027);
+  --sel:     light-dark(#dbe7f3, #1a2736);
+  --accent:  light-dark(#0b63c4, #5aa9f0);
+  --accent-soft: light-dark(#d5e5f7, #1b2f45);
+  --on-accent: light-dark(#fff, #07111c);
+  --live:    light-dark(#0a8f4a, #3ddc84);
+  --shadow:  0 8px 24px rgba(0,0,0,.28);
+  --r: 2px;
+  --toph: 34px;
+  --listw: 360px; --listw-n: 300px;
+  --dpad: 14px 16px 28px;
+  --h1: 16px; --mv: 26px; --mv-w: 600;
+  --sec-gap: 14px; --sec-fs: 12.5px; --mgap: 0;
+  --row-areas: "nm bar tm" auto / minmax(0, 1fr) 88px 52px;
+  --row-areas-m: "ck nm bar tm" auto / 18px minmax(0, 1fr) 88px 52px;
+  --row-gap: 0 10px; --row-pad: 5px 10px; --nm-w: 500;
+  --bar-h: 8px; --bar-r: 0; --bar-big: 14px; --mini-h: 18px;
+  --cell-h: 44px; --ruler-h: 18px; --cell-gap: 0; --cell-r: 0;
+  --seg-cols: 112px minmax(0, 1fr) 44px 58px 128px; --seg-cols-n: 104px minmax(0, 1fr) 40px 56px;
+  --seg-pad: 4px 10px;
+  --brand-ls: .12em; --wf-rh: 24px;
+}
+#top .brand { font-size: 12px; }
+.row { font-size: 12.5px; }
+.row .tm { font-weight: 600; }
+/* 指标：两格并排，带边框，像仪表读数 */
+.metrics { border: 1px solid var(--line); background: var(--panel); }
+.metric { padding: 8px 12px; }
+.metric + .metric { border-left: 1px solid var(--line); }
+.metric .lb { text-transform: uppercase; font-size: 10.5px; letter-spacing: .1em; }
+.sec-t { text-transform: none; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+.legend { font-size: 11.5px; }
+.tl-scroll { background: var(--panel); background-image: repeating-linear-gradient(90deg, transparent 0 89px, var(--line-soft) 89px 90px); }
+.cell { box-shadow: inset -1px 0 0 var(--panel); }
+.seg { font-size: 12px; }
+.seg-h { text-transform: uppercase; font-size: 10.5px; letter-spacing: .08em; }
+button { text-transform: none; }
+.fs, .sess, .segs, .errl, .tn { border-radius: 0; }

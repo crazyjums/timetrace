@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>洞察</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;font-family:Inter,"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;color:#1b2430}
+*{box-sizing:border-box}
+.app{width:1280px;height:800px;display:flex;background:#f6f7f9;font-size:13px;line-height:1.45}
+.side{width:196px;background:#fff;border-right:1px solid #dfe3e8;padding:20px 12px;display:flex;flex-direction:column;gap:4px;flex:none}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:15px;padding:0 8px 16px}
+.brand i{width:22px;height:22px;border-radius:6px;background:#1f5fae;display:block;position:relative}
+.brand i:after{content:"";position:absolute;left:5px;right:5px;top:10px;height:2px;background:#fff;box-shadow:0 -4px 0 0 #fff,0 4px 0 0 #fff}
+.nv{display:block;padding:8px 10px;border-radius:7px;color:#566170;text-decoration:none;font-size:13px}
+.nv.on{background:#e8f0fa;color:#174a8a;font-weight:600}
+.sp{flex:1}
+.priv{font-size:11.5px;color:#566170;padding:10px;border-top:1px solid #dfe3e8;line-height:1.5}
+.main{flex:1;min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+.top{display:flex;align-items:center;gap:12px}
+.top h1{margin:0;font-size:20px;font-weight:650}
+.grow{flex:1}
+.seg-ctl{display:flex;border:1px solid #cfd5dc;border-radius:8px;overflow:hidden;background:#fff}
+.seg-ctl span{padding:6px 12px;font-size:12.5px;color:#566170}
+.seg-ctl span.on{background:#1b2430;color:#fff}
+.hero{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px}
+.card{background:#fff;border:1px solid #dfe3e8;border-radius:10px;padding:14px 16px}
+.card h2{margin:0 0 10px;font-size:13.5px;font-weight:650;display:flex;align-items:center;gap:8px}
+.card h2 span{font-weight:400;color:#566170;font-size:12px}
+.big{font-size:26px;font-weight:650;font-variant-numeric:tabular-nums;line-height:1.2}
+.cap{color:#566170;font-size:12px;margin-top:3px}
+.find{display:flex;gap:12px;align-items:center}
+.find i{width:44px;height:44px;border-radius:10px;display:block;flex:none}
+.find .big{font-size:22px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:12px;flex:1;min-height:0}
+.lc{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pr{display:grid;grid-template-columns:70px minmax(0,1fr) 120px;gap:10px;align-items:center;padding:4px 0;font-size:12.5px}
+.pr .nm{display:flex;align-items:center;gap:6px}
+.pr i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.pr .tr{height:14px;background:#eef1f4;border-radius:3px;overflow:hidden}
+.pr .tr div{height:100%}
+.pr .v{text-align:right;font-variant-numeric:tabular-nums;color:#3b4552}
+.rq{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.5fr) 64px;gap:12px;align-items:center;padding:6px 0;border-bottom:1px solid #edf0f3;font-size:12.5px}
+.rq:last-child{border-bottom:0}
+.rq .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.rq .t{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.mb{display:flex;height:12px;border-radius:3px;overflow:hidden;gap:1px}
+.badge{display:inline-block;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;background:#e8f0fa;color:#174a8a}
+.adv{border:1px solid #dfe3e8;border-radius:9px;padding:11px 12px;margin-bottom:10px}
+.adv .h{font-weight:650;font-size:13.5px}
+.adv .e{color:#3b4552;font-size:12.5px;margin-top:3px}
+.adv .a{margin-top:6px;font-size:12.5px}
+.adv .a b{font-weight:650}
+.adv .c{margin-top:6px;color:#566170;font-size:11.5px}
+.llm{border:1px dashed #aab3bf;border-radius:9px;padding:10px 12px;display:flex;gap:10px;align-items:center;color:#3b4552;font-size:12.5px}
+.btn{border:1px solid #cfd5dc;background:#f1f4f7;border-radius:7px;padding:5px 12px;font-size:12.5px;color:#566170;font-family:inherit}
+.llm a{color:#174a8a}
+.note{color:#566170;font-size:11.5px}
+.ph-plan{background-color:#2B73B8}
+.ph-research{background-color:#1E9475;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 2px,transparent 2px 6px)}
+.ph-code{background-color:#C98414;background-image:radial-gradient(rgba(255,255,255,.34) 1.2px,transparent 1.7px);background-size:5px 5px}
+.ph-fix{background-color:#CF4B37;background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px),repeating-linear-gradient(-45deg,rgba(255,255,255,.34) 0 1.5px,transparent 1.5px 5px)}
+.ph-test{background-color:#A9569A;background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+.ph-other{background-color:#7C8796;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.34) 0 2px,transparent 2px 5px)}
+</style>
+</helmet>
+<div class="app">
+  <nav class="side" aria-label="主导航">
+    <div class="brand"><i aria-hidden="true"></i>时迹</div>
+    <a class="nv" href="Main.dc.html">需求</a>
+    <a class="nv" href="Today.dc.html">今日</a>
+    <a class="nv on" href="Insights.dc.html">洞察</a>
+    <a class="nv" href="Sources.dc.html">数据源与设置</a>
+    <div class="sp"></div>
+    <div class="priv">数据只在本机处理，不上传。大模型建议默认关闭。</div>
+  </nav>
+  <main class="main">
+    <div class="top">
+      <h1>洞察</h1>
+      <div class="grow"></div>
+      <div class="seg-ctl" role="group" aria-label="时间范围"><span>今天</span><span class="on">本周</span><span>本月</span></div>
+    </div>
+    <div class="hero">
+      <div class="card">
+        <div class="cap" style="margin:0 0 6px">本周最耗时的阶段</div>
+        <div class="find"><i class="ph-code" aria-hidden="true"></i><div><div class="big">写代码 4h 45m</div><div class="cap">占活跃时间 25% · 其次是改代码 4h 10m</div></div></div>
+      </div>
+      <div class="card">
+        <div class="cap" style="margin:0 0 6px">活跃时间</div>
+        <div class="big">19h 22m</div>
+        <div class="cap">较上周 +2h 10m · 4 个需求</div>
+      </div>
+      <div class="card">
+        <div class="cap" style="margin:0 0 6px">等我</div>
+        <div class="big">3h 12m</div>
+        <div class="cap">占活跃时间 17%</div>
+      </div>
+    </div>
+    <div class="cols">
+      <div class="lc">
+        <div class="card">
+          <h2>阶段排名 <span>AI 工作时间 16h 10m，不含等我</span></h2>
+          <sc-for list="{{phases}}" as="p" hint-placeholder-count="6">
+            <div class="pr">
+              <div class="nm"><i class="{{p.cls}}"></i>{{p.n}}</div>
+              <div class="tr"><div class="{{p.cls}}" style="width: {{p.w}}%"></div></div>
+              <div class="v">{{p.v}} · {{p.pc}}%</div>
+            </div>
+          </sc-for>
+        </div>
+        <div class="card" style="flex:1">
+          <h2>耗时最多的需求 <span>点一行进入明细</span></h2>
+          <sc-for list="{{reqs}}" as="r" hint-placeholder-count="4">
+            <div class="rq">
+              <div class="n">{{r.n}}</div>
+              <div class="mb">
+                <sc-for list="{{r.segs}}" as="s" hint-placeholder-count="6"><div class="{{s.cls}}" style="flex: {{s.w}} 1 0"></div></sc-for>
+              </div>
+              <div class="t">{{r.t}}</div>
+            </div>
+          </sc-for>
+          <div class="note" style="margin-top:8px">「内部网关重构」是粗略档（Cursor 转录），没有耗时，不计入以上数字。</div>
+        </div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column">
+        <h2>建议 <span class="badge">规则生成</span><span>本地计算，不联网</span></h2>
+        <div class="adv">
+          <div class="h">AI 做完后你要隔很久才回</div>
+          <div class="e">等我占活跃时间 17%，共 3h 12m，超过 15% 的提示线。</div>
+          <div class="a"><b>可以试：</b>长任务开始前，把验收条件一次说清，减少来回确认。</div>
+          <div class="c">依据：等我 ÷ 活跃 = 192m ÷ 1162m</div>
+        </div>
+        <div class="adv">
+          <div class="h">有 4 轮超过 10 分钟</div>
+          <div class="e">合计 58m，集中在改代码和测试。</div>
+          <div class="a"><b>可以试：</b>点开这几轮看看卡在哪，是工具慢，还是反复重试。</div>
+          <div class="c">依据：轮时长 &gt; 10m 的轮数 ≥ 3</div>
+        </div>
+        <div class="grow"></div>
+        <div class="llm">
+          <button class="btn" type="button" disabled>用大模型解读</button>
+          <span>未配置，默认关闭。<a href="Sources.dc.html">去设置</a></span>
+        </div>
+        <div class="note" style="margin-top:8px">打开后只会手动触发，发送前先预览发送的内容；所有数字仍由本地算出。</div>
+      </div>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const fm = (m) => (m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm');
+    const raw = [['code', '写代码', 285], ['fix', '改代码', 250], ['research', '调研', 150], ['plan', '聊方案', 129], ['test', '测试', 103], ['other', '其他', 53]];
+    const tot = 970;
+    const phases = raw.map(([k, n, m]) => ({ cls: 'ph-' + k, n: n, w: Math.round(m * 100 / 285), v: fm(m), pc: Math.round(m * 100 / tot) }));
+    const mk = (a) => a.map(([k, w]) => ({ cls: 'ph-' + k, w: w }));
+    const reqs = [
+      { n: '发布巡检刹车', t: '8h 05m', segs: mk([['plan', 15], ['research', 14], ['code', 31], ['fix', 22], ['test', 13], ['other', 5]]) },
+      { n: '登录接口改造', t: '6h 42m', segs: mk([['plan', 12], ['research', 9], ['code', 34], ['fix', 28], ['test', 10], ['other', 7]]) },
+      { n: '订单导出超时排查', t: '3h 15m', segs: mk([['plan', 8], ['research', 31], ['code', 12], ['fix', 36], ['test', 9], ['other', 4]]) },
+      { n: '日志解析器适配', t: '1h 20m', segs: mk([['plan', 22], ['research', 18], ['code', 40], ['fix', 10], ['test', 5], ['other', 5]]) }
+    ];
+    return { phases, reqs };
+  }
+}
+</script>
+</body>
+</html>
