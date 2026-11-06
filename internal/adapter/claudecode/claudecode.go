@@ -43,8 +43,14 @@ type line struct {
 	SessionID   string `json:"sessionId"`
 	IsSidechain bool   `json:"isSidechain"`
 	IsMeta      bool   `json:"isMeta"`
+	GitBranch   string `json:"gitBranch"`
 	AITitle     string `json:"aiTitle"`
 	Message     struct {
+		Model string `json:"model"`
+		Usage struct {
+			In  int `json:"input_tokens"`
+			Out int `json:"output_tokens"`
+		} `json:"usage"`
 		Content json.RawMessage `json:"content"`
 	} `json:"message"`
 }
@@ -95,6 +101,9 @@ func (Adapter) Parse(file string) (*model.Session, error) {
 		if s.Cwd == "" {
 			s.Cwd = l.Cwd
 		}
+		if s.Branch == "" {
+			s.Branch = l.GitBranch
+		}
 		if ev, ok := toEvent(l, t); ok {
 			s.Events = append(s.Events, ev)
 		}
@@ -132,8 +141,12 @@ func toEvent(l line, t time.Time) (model.Event, bool) {
 	}
 	if l.Type == "assistant" {
 		ev.Role = "assistant"
+		ev.Model, ev.TokIn, ev.TokOut = l.Message.Model, l.Message.Usage.In, l.Message.Usage.Out
 		var texts []string
 		for _, b := range bs {
+			if b.Type == "thinking" {
+				ev.Thinking = true
+			}
 			if b.Type == "text" && b.Text != "" {
 				texts = append(texts, b.Text)
 			}

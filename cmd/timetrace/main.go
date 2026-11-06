@@ -28,7 +28,7 @@ func main() {
 	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
 	root := fs.String("claude-dir", os.ExpandEnv("$HOME/.claude/projects"), "Claude Code 日志目录（只读）")
 	state := fs.String("state", store.DefaultPath(), "本机状态文件（人工修正与设置）")
-	days := fs.Int("days", 7, "insights 统计天数；上期为紧邻的同长度区间")
+	days := fs.Int("days", 7, "insights 统计天数；7（默认）按自然周（周一起），其他值按最近 N 天；上期为紧邻的同长度区间")
 	fs.Parse(args)
 
 	st, err := store.Load(*state)
@@ -58,7 +58,7 @@ func main() {
 		st.Overrides.Phase[rest[0]+"#"+rest[1]] = core.Phase(rest[2])
 		save()
 		return
-	case "merge": // merge <会话ID>...（同 cwd 内强制归为同一需求）
+	case "merge": // merge <会话ID>...（强制归为同一需求(可跨目录)）
 		need(rest, 2)
 		st.Overrides.Merge = append(st.Overrides.Merge, rest)
 		save()
@@ -92,18 +92,26 @@ func main() {
 		}
 	case "today":
 		for _, it := range core.Today(core.Aggregate(sessions, cfg), now, cfg) {
-			run := ""
-			if it.Running {
-				run = "  （进行中，算到现在）"
-			}
-			fmt.Printf("%s  %s%s\n", it.Name, fmtD(it.Active), run)
+			note := map[string]string{"running": "  （运行中，计到现在）", "waiting": "  （等我中）", "ended": ""}[it.Status]
+			fmt.Printf("%s  %s%s\n", it.Name, fmtD(it.Stats.Active), note)
 		}
 	case "insights", "llm-preview", "llm-send":
 		d := time.Duration(*days) * 24 * time.Hour
 		curR := core.Aggregate(inRange(sessions, now.Add(-d), now), cfg)
 		if cmd == "insights" {
-			prevR := core.Aggregate(inRange(sessions, now.Add(-2*d), now.Add(-d)), cfg)
-			printInsights(insights.Build(curR, prevR))
+			from, to, pf, pt := core.Period("week", now)
+			if *days != 7 {
+				to, from = now, now.Add(-d)
+				pf, pt = from.Add(-d), from
+			}
+			named := func(f, t time.Time) []insights.Named {
+				var o []insights.Named
+				for _, q := range core.Aggregate(sessions, cfg) {
+					o = append(o, insights.Named{Key: q.Key(), Name: q.Name, S: q.Stats(f, t)})
+				}
+				return o
+			}
+			printInsights(insights.Build(named(from, to), named(pf, pt)))
 			break
 		}
 		p, err := llm.BuildPayload(st.Settings.LLM.Level, curR)
@@ -125,21 +133,21 @@ func main() {
 }
 
 func printInsights(r insights.Report) {
-	if r.TopPhase == nil {
+	if r.Top == nil {
 		fmt.Println("本期没有可统计的精确档数据")
 		return
 	}
-	fmt.Printf("最耗时阶段: %s %s (%.0f%%)\n", r.TopPhase.Phase, fmtD(r.TopPhase.D), r.TopPhase.Pct)
-	if r.Delta != nil {
-		fmt.Printf("活跃时间: 本期 %s，上期 %s\n", fmtD(r.Delta.Cur), fmtD(r.Delta.Prev))
+	fmt.Printf("最耗时阶段: %s %s (占活跃 %.0f%%)\n", r.Top.Phase, fmtD(r.Top.D), r.Top.Pct)
+	if r.HasPrev {
+		fmt.Printf("活跃时间: 本期 %s，上期 %s\n", fmtD(r.Active), fmtD(r.PrevActive))
 	} else {
-		fmt.Println("活跃时间: 上期无数据，不显示变化")
+		fmt.Printf("活跃时间: %s（上期无数据，不显示变化）\n", fmtD(r.Active))
 	}
 	for i, q := range r.TopReqs {
-		fmt.Printf("Top%d %s %s\n", i+1, q.Name, fmtD(q.D))
+		fmt.Printf("Top%d %s %s\n", i+1, q.Name, fmtD(q.S.Active))
 	}
 	for _, s := range r.Suggestions {
-		fmt.Println("建议:", s)
+		fmt.Printf("建议: %s %s 可以试：%s（依据：%s）\n", s.Title, s.Detail, s.Try, s.Basis)
 	}
 }
 
