@@ -11,7 +11,10 @@ function startServer() {
     const exe = "timetrace-server" + (process.platform === "win32" ? ".exe" : "");
     const bin = app.isPackaged ? path.join(process.resourcesPath, exe) : path.join(__dirname, "bin", exe);
     // windowsHide：不弹出黑色命令行窗口
-    server = spawn(bin, ["--port", "0"], { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
+    // 把自己的版本号交给本机服务，用来判断 GitHub 上有没有新版本（开发运行时不提示）
+    const args = ["--port", "0"];
+    if (app.isPackaged) args.push("--app-version", app.getVersion());
+    server = spawn(bin, args, { stdio: ["ignore", "pipe", "inherit"], windowsHide: true });
     server.on("error", reject);
     server.on("exit", code => { if (!app.isQuitting) reject(new Error("服务异常退出，code=" + code)); });
     let buf = "";

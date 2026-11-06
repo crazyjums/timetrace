@@ -11,6 +11,7 @@ import (
 
 	"github.com/crazyjums/timetrace/internal/server"
 	"github.com/crazyjums/timetrace/internal/store"
+	"github.com/crazyjums/timetrace/internal/update"
 )
 
 func setup(t *testing.T) (*httptest.Server, string) {
@@ -216,5 +217,38 @@ func TestNoParseErrorsIsEmptyArray(t *testing.T) {
 		if strings.Contains(b, `"parseErrors":null`) || strings.Contains(b, `"sources":null`) {
 			t.Errorf("%s 没有解析错误时应返回空数组: %s", path, b)
 		}
+	}
+}
+
+func TestUpdateEndpoint(t *testing.T) {
+	gh := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"tag_name":"v0.1.11","name":"v0.1.11","html_url":"https://github.com/crazyjums/timetrace/releases/tag/v0.1.11","published_at":"2026-11-06T14:30:00Z"}`))
+	}))
+	defer gh.Close()
+	dir := t.TempDir()
+	state := filepath.Join(dir, "state.json")
+	// 旧版本的状态文件没有 no_update_check 字段：默认应为开启检查
+	os.WriteFile(state, []byte(`{"settings":{"idle_minutes":10,"window_hours":4,"sources":[]}}`), 0o600)
+	srv := server.New(state, "")
+	srv.Update = update.New("0.1.10")
+	srv.Update.BaseURL = gh.URL
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	_, b := do(t, "GET", ts.URL+"/api/update", "", nil)
+	if !strings.Contains(b, `"enabled":true`) || !strings.Contains(b, `"latest":null`) {
+		t.Fatalf("GET 只返回缓存、不联网，且默认开启: %s", b)
+	}
+	if c, _ := do(t, "POST", ts.URL+"/api/update", "{}", nil); c != 403 {
+		t.Errorf("POST 需要 X-Timetrace 头, got %d", c)
+	}
+	_, b = do(t, "POST", ts.URL+"/api/update", "{}", csrf)
+	if !strings.Contains(b, `"available":true`) || !strings.Contains(b, `"version":"0.1.11"`) {
+		t.Errorf("立即检查应发现新版本: %s", b)
+	}
+	// 关闭自动检查后设置能保存
+	do(t, "PUT", ts.URL+"/api/settings", `{"idle_minutes":10,"window_hours":4,"no_update_check":true,"sources":[]}`, csrf)
+	if _, b = do(t, "GET", ts.URL+"/api/update", "", nil); !strings.Contains(b, `"enabled":false`) {
+		t.Errorf("关闭后应为 enabled=false: %s", b)
 	}
 }

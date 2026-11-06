@@ -17,6 +17,9 @@ type Settings struct {
 	WindowHours int      `json:"window_hours"`
 	LLM         LLMCfg   `json:"llm"`
 	Sources     []Source `json:"sources"`
+	// NoUpdateCheck 为 true 时不自动检查更新。用「关闭」而不是「开启」做字段，
+	// 这样旧的状态文件（没有这个字段）默认就是开启检查。
+	NoUpdateCheck bool `json:"no_update_check"`
 }
 
 // Source = 适配器 + 目录。同一适配器可有多个目录。
