@@ -220,7 +220,8 @@ flowchart LR
 | `internal/store` | 人工修正与设置的本机存储 |
 | `internal/server` | JSON API 与内嵌界面(`web/`,无构建步骤) |
 | `electron/` | Electron 外壳:只启动本机服务并加载界面,不含业务逻辑 |
-| `docs/` | 产品简报与界面原型 |
+| `docs/` | 产品简报、界面原型与 README 截图 |
+| `scripts/screenshots/` | 重新生成 README 截图的脚本(演示数据 + 截图) |
 
 ## 开发
 
@@ -242,7 +243,15 @@ go vet ./...
 go test -race ./...
 ```
 
-**CI 与发布**:`.github/workflows/ci-release.yml`。提交 PR 时跑 `gofmt`、`go vet`、`go test -race` 与前端脚本语法检查;合并到 `master` 后,检查通过则在 Windows / macOS / Linux 的原生 runner 上打包,并自动发布 Release(版本号 `v0.1.<运行序号>`)。
+**CI 与发布**:`.github/workflows/ci-release.yml`。提交 PR 时跑 `gofmt`、`go vet`、`go test -race` 与前端脚本语法检查;合并到 `master` 后,检查通过则在 Windows / macOS / Linux 的原生 runner 上打包,并自动发布 Release。版本号取已发布的最新 `v0.1.x` 标签再加 1,每次合并递增 1。
+
+**更新截图**:README 里的截图都用演示数据生成。改了页面后运行下面的命令重新截图(需要 Python 3 与 Playwright):
+
+```bash
+scripts/screenshots/run.sh            # 造演示数据 → 启动本机服务 → 截图到 docs/screenshots/
+```
+
+演示数据由 `scripts/screenshots/gen-demo.py` 生成(虚构的项目与对话),截图步骤在 `scripts/screenshots/shoot.js`;新增页面时在 `shoot.js` 里补一张,并在 README 的[截图](#截图)里引用。
 
 ## 新增一个适配器
 
@@ -276,6 +285,7 @@ go test -race ./...
 欢迎 issue 和 PR,尤其是**脱敏的真实日志样例**(Codex CLI、pi、omp、Cursor)。
 
 - 提 PR 前先跑一遍 `gofmt -l .`、`go vet ./...`、`go test -race ./...`。
+- 改了页面(布局、文案、交互、新增页面),在同一个 PR 里同步更新 README 的相关描述,并用 `scripts/screenshots/run.sh` 重新生成截图。
 - 改动请遵守[不能破的规则](CLAUDE.md#不能破的规则):数据全程本机、计时只在核心层实现、缺失字段显示「–」、阶段四重编码、只读日志。
 - 产品背景与页面清单见 [`docs/BRIEF.md`](docs/BRIEF.md),界面原型见 [`docs/prototype-canvas/`](docs/prototype-canvas/) 与 [`docs/prototype-v0/`](docs/prototype-v0/)(阶段色板与图标以 `prototype-v0` 为准)。
 

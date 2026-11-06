@@ -27,3 +27,4 @@
 - 开始写代码前先给计划，等确认。
 - 解析层必须能脱离界面单独测试：输入样例日志，输出统一模型。
 - commit message 不要带 Co-Authored-By 和 Claude-Session 这类署名行。
+- 改了页面（布局、文案、交互、新增或删除页面）时，在同一次改动里同步更新 `README.md` 的相关描述，并运行 `scripts/screenshots/run.sh` 重新生成 `docs/screenshots/` 下的截图；新增页面要在 `scripts/screenshots/shoot.js` 里补截图步骤，并在 README 的「截图」一节引用。
